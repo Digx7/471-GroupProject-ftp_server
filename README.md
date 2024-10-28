@@ -56,16 +56,16 @@ They are technically in all text files, they are just rarely diplayed
 The output showing them is a good thing, it means that even the hidden charcters are being sent
 
 # Whats left to work on?
-At the time of writting we have these following task that need to be worked on
+At the time of writing we have these following task that need to be worked on
 - Make it so `sendfilecli.py` breaks up the file into multiple packets if the file is to large
-- Make it so `sendfileserv.py` can recieve multiple packets and reassemble the file correctly
+- Make it so `sendfileserv.py` can receive multiple packets and reassemble the file correctly
 - Make it so `sendfileserv.py` stores the file somewhere (after all it need to be able to send this file back)
 - Make it so we can specify the port number when setting up `sendfilecli.py` and the `sendfileserv.py`
 - Make it so the user can establish a connection between a client and a sever then enter any of the following commands 
     - `get <file name> (downloads file <file name> from the server)`
     - `put <filename> (uploads file <file name> to the server)`
-    - `ls(lists files on theserver)`
+    - `ls(lists files on the server)`
     - `quit (disconnects from the server and exits)`
 - Make it so the client an server use 2 connections at all times 1 for sending data and 1 for sending commands
 
-If there are any futher questions check the assignment pdf file the professor attached to the assignment on canvas
+If there are any futher questions check the assignment pdf `CPSC471_Fall 2024_Programming Assignment(1).pdf`
