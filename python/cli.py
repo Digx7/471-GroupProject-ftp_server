@@ -16,6 +16,13 @@ import socket
 import os
 import sys
 
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
+
 # Check if the help command was input
 if len(sys.argv) == 2:
     if sys.argv[1] == "help" or sys.argv[1] == "h":
@@ -39,13 +46,15 @@ if len(sys.argv) != 3:
 serverMachineAddress = str(sys.argv[1])
 serverControlPortNumber = int(sys.argv[2])
 
-# TODO: connect to the server
 
 # Creates a control socket
-# controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Connect to the server
-# controlSock.connect((serverMachineAddress, serverControlPortNumber))
+controlSock.connect((serverMachineAddress, serverControlPortNumber))
+
+print("Connecting to the server")
+
 
 # All the ftp commands availble once the connection is set
 
@@ -108,7 +117,6 @@ ftpCommands = {
 }
 
 
-print ("TODO: implement to the server, we'll just fake it for now")
 
 while True:
 

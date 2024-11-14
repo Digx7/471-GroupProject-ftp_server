@@ -11,6 +11,12 @@ import socket
 import os
 import sys
 
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    ip = s.getsockname()[0]
+    s.close()
+    return ip
 
 # Check number of command line args
 if len(sys.argv) != 2:
@@ -33,14 +39,21 @@ controlPortNumber = int(sys.argv[1])
 controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Bind the socket to the port
-controlSock.bind(('', controlPortNumber))
+controlSock.bind((get_ip(), controlPortNumber))
 
 # Start listening on the socket
 controlSock.listen(1)
 
+sockName = controlSock.getsockname()
+
+
 while True:
 
     print ("Waiting for connections...")
+    print (sockName)
+
+    # print(get_ip())
+
 
     # Accept connections
     clientControlSock, addr = controlSock.accept()
@@ -50,5 +63,9 @@ while True:
     print ("Accepted connection from client: ", addr)
     print ("\n")
 
+    print ("closing")
+
     # Close our side
     clientControlSock.close()
+    controlSock.close()
+    quit()
