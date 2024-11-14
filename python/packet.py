@@ -2,6 +2,14 @@ import socket
 import os
 import sys
 
+class Packet:
+
+    def __init__(self, number: int = 0, command: str = "", dataSize: int = 0, data: bytes = b''):
+        self.number = number
+        self.command = command
+        self.dataSize = dataSize
+        self.data = data
+
 def recvData_as_bytes(sock, numBytes):
 
 	# TODO: turn these empty string buffers into binary buffers
@@ -27,7 +35,7 @@ def recvData_as_bytes(sock, numBytes):
 	
 	return recvBuff
 
-def recvPacket(sock, responses_to_packets, respone_to_UnrecognizedPacket):
+def recvPacket(sock):
     packetNumberBuffer = b""
     packetNumber = 0
 
@@ -55,10 +63,12 @@ def recvPacket(sock, responses_to_packets, respone_to_UnrecognizedPacket):
         dataBuffer = recvData_as_bytes(sock, dataSize)
         print ("Data: ", dataBuffer)
 
-    if commandName in responses_to_packets:
-         responses_to_packets[commandName](packetNumber, dataBuffer)
-    else:
-         respone_to_UnrecognizedPacket(dataBuffer)
+    return Packet(packetNumber, commandName, dataSize, dataBuffer)
+
+    # if commandName in responses_to_packets:
+    #      responses_to_packets[commandName](packetNumber, dataBuffer)
+    # else:
+    #      respone_to_UnrecognizedPacket(dataBuffer)
 
 
 def sendPacket(

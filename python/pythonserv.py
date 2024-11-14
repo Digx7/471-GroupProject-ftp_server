@@ -11,6 +11,7 @@ import socket
 import os
 import sys
 import packet
+import procedures
 
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -88,6 +89,9 @@ def response_to_ConnectPacket(packetNumber: int, data: bytes):
 
 def response_to_ConnectAcknowledmentPacket(packetNumber: int, data: bytes):
     print ("recieved a connection acknowledgement packet")
+
+    clientDataPortNumber.from_bytes(data)
+
     packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
 def response_to_DisconnectPacket(packetNumber: int, data: bytes):
@@ -104,13 +108,28 @@ def response_to_GetPacket(packetNumber: int, data: bytes):
     # TODO: check if file exists
     # If file exists open Data sock
 
-    dataSock.bind(get_ip(), dataPortNumber)
+    dataSock.bind((get_ip(), dataPortNumber))
+    dataSock.listen()
 
-    packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
+    # clientDataSock, clientDataAddress = dataSock.accept()
+
+    procedureManager.startProcedure("Get")
+
+    # packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
+    # Start Get Procedure
 
 def response_to_PutPacket(packetNumber: int, data: bytes):
     print ("recieved a put packet")
-    packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
+
+    dataSock.bind((get_ip(), dataPortNumber))
+    dataSock.listen()
+
+    # clientDataSock, clientDataAddress = dataSock.accept()
+
+
+    procedureManager.startProcedure("Put")
+
+    # packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
 def response_to_DeletePacket(packetNumber: int, data: bytes):
     print ("recieved a delete packet")
@@ -183,10 +202,49 @@ dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # Bind the socket to the port
 controlSock.bind((get_ip(), controlPortNumber))
 
+# dataSock.bind((get_ip(), dataPortNumber))
+
 # Start listening on the socket
 controlSock.listen()
 
 sockName = controlSock.getsockname()
+
+
+def execute_withValue(value):
+    print(value) 
+    print("Executing step")
+
+def execute():
+    print("Executing step")
+
+def validate():
+    return 100
+
+def passed():
+    print("step passed")
+
+def error1():
+    print("Error 1")
+
+def error2():
+    print("Error 2")
+
+def allOtherErrors():
+    print("Error N")
+
+
+getProcedure = procedures.Procedure()
+getProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), passed, error1, error2, allOtherErrors)
+getProcedure.buildStep(lambda: packet.sendConnectAcknowledgmentPacket(dataSock, 1, dataPortNumber), passed, error1, error2, allOtherErrors)
+
+putProcedure = procedures.Procedure()
+putProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), passed, error1, error2, allOtherErrors)
+putProcedure.buildStep(lambda: packet.sendConnectAcknowledgmentPacket(dataSock, 1, dataPortNumber), passed, error1, error2, allOtherErrors)
+
+
+procedureManager = procedures.ProcedureManager()
+procedureManager.addProcedure("Get", getProcedure)
+procedureManager.addProcedure("Put", putProcedure)
 
 print ("Waiting for connections...")
 print (sockName)
@@ -202,8 +260,12 @@ clientControlSock, addr = controlSock.accept()
 print ("Accepted connection from client: ", addr)
 print ("\n")
 
-
+lastReviecedPacket = packet.Packet()
 
 while True:
-    packet.recvPacket(clientControlSock, responses_to_packets, response_to_UnrecognizedPacket)
+    lastReviecedPacket = packet.recvPacket(clientControlSock)
+    if lastReviecedPacket.command == "000Con":
+        response_to_ConnectPacket(lastReviecedPacket.number, lastReviecedPacket.data)
+    if lastReviecedPacket.command == "000Get":
+        response_to_GetPacket(lastReviecedPacket.number, lastReviecedPacket.data)
     
