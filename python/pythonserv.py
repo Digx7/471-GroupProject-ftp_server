@@ -85,7 +85,8 @@ def response_to_ConnectPacket(packetNumber: int, data: bytes):
 
     clientDataPortNumber.from_bytes(data)
 
-    packet.sendConnectAcknowledgmentPacket(clientControlSock, 1, dataPortNumber)
+    # packet.sendConnectAcknowledgmentPacket(clientControlSock, 1, dataPortNumber)
+    procedureManager.startProcedure("Setup")
 
 def response_to_ConnectAcknowledmentPacket(packetNumber: int, data: bytes):
     print ("recieved a connection acknowledgement packet")
@@ -172,6 +173,55 @@ responses_to_packets = {
      "0FStat" : response_to_FileStatusPacket,
 }
 
+
+def execute_withValue(value):
+    print(value) 
+    print("Executing step")
+
+def execute():
+    print("Executing step")
+
+def validate():
+    return 100
+
+def passed():
+    print("step passed")
+
+def error1():
+    print("Error 1")
+
+def error2():
+    print("Error 2")
+
+def allOtherErrors():
+    print("Error N")
+
+setupProcedure = procedures.Procedure()
+setupProcedure.buildStep(lambda: packet.sendConnectAcknowledgmentPacket(clientControlSock, 1, dataPortNumber), validate, passed, error1, error2, allOtherErrors)
+
+getProcedure = procedures.Procedure()
+getProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
+
+putProcedure = procedures.Procedure()
+putProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
+
+deleteProcedure = procedures.Procedure()
+deleteProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
+
+listProcedure = procedures.Procedure()
+listProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
+
+disconnectProcedure = procedures.Procedure()
+disconnectProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
+
+procedureManager = procedures.ProcedureManager()
+procedureManager.addProcedure("Setup", setupProcedure)
+procedureManager.addProcedure("Get", getProcedure)
+procedureManager.addProcedure("Put", putProcedure)
+procedureManager.addProcedure("Delete", deleteProcedure)
+procedureManager.addProcedure("List", listProcedure)
+procedureManager.addProcedure("Quit", disconnectProcedure)
+
 # Check number of command line args
 if len(sys.argv) != 2:
     print ("Inteded usage: pythonserv.py <PORTNUMBER>")
@@ -209,43 +259,6 @@ controlSock.listen()
 
 sockName = controlSock.getsockname()
 
-
-def execute_withValue(value):
-    print(value) 
-    print("Executing step")
-
-def execute():
-    print("Executing step")
-
-def validate():
-    return 100
-
-def passed():
-    print("step passed")
-
-def error1():
-    print("Error 1")
-
-def error2():
-    print("Error 2")
-
-def allOtherErrors():
-    print("Error N")
-
-
-getProcedure = procedures.Procedure()
-getProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), passed, error1, error2, allOtherErrors)
-getProcedure.buildStep(lambda: packet.sendConnectAcknowledgmentPacket(dataSock, 1, dataPortNumber), passed, error1, error2, allOtherErrors)
-
-putProcedure = procedures.Procedure()
-putProcedure.buildStep(lambda: packet.sendAcknowledgePacket(clientControlSock, 1, 1), passed, error1, error2, allOtherErrors)
-putProcedure.buildStep(lambda: packet.sendConnectAcknowledgmentPacket(dataSock, 1, dataPortNumber), passed, error1, error2, allOtherErrors)
-
-
-procedureManager = procedures.ProcedureManager()
-procedureManager.addProcedure("Get", getProcedure)
-procedureManager.addProcedure("Put", putProcedure)
-
 print ("Waiting for connections...")
 print (sockName)
 
@@ -266,6 +279,9 @@ while True:
     lastReviecedPacket = packet.recvPacket(clientControlSock)
     if lastReviecedPacket.command == "000Con":
         response_to_ConnectPacket(lastReviecedPacket.number, lastReviecedPacket.data)
-    if lastReviecedPacket.command == "000Get":
+        # procedureManager.startProcedure("Setup")
+    elif lastReviecedPacket.command == "000Get":
         response_to_GetPacket(lastReviecedPacket.number, lastReviecedPacket.data)
+    # else:
+        # quit()
     

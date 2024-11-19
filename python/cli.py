@@ -56,7 +56,8 @@ def deleteFTPCommand(inputArgs):
         return
     fileName = inputArgs[1]
     print("Deleting file: " + fileName)
-    packet.sendDeletePacket(controlSock, 1)
+    # packet.sendDeletePacket(controlSock, 1)
+    procedureManager.startProcedure("Delete")
 
 # Lists out all valid commands
 def helpFTPCommand(inputArgs):
@@ -72,12 +73,14 @@ def helpFTPCommand(inputArgs):
 # Lists out all files on FTP server
 def lsFTPCommand(inputArgs):
     print("Listing file names")
-    packet.sendListRequestPacket(controlSock, 1)
+    # packet.sendListRequestPacket(controlSock, 1)
+    procedureManager.startProcedure("List")
 
 # Quits execution
 def quitFTPCommand(inputArgs):
     print("Goodbye!")
-    packet.sendDisconnectPacket(controlSock, 1)
+    # packet.sendDisconnectPacket(controlSock, 1)
+    procedureManager.startProcedure("Quit")
     quit()
 
 # Runs if the command is not recognized
@@ -97,64 +100,7 @@ ftpCommands = {
 }
 
 
-# def recvData_as_bytes(sock, numBytes):
-
-# 	# TODO: turn these empty string buffers into binary buffers
-
-# 	# The buffer
-# 	recvBuff = b""
-	
-# 	# The temporary buffer
-# 	tmpBuff = b""
-	
-# 	# Keep receiving till all is received
-# 	while len(recvBuff) < numBytes:
-		
-# 		# Attempt to receive bytes
-# 		tmpBuff =  sock.recv(numBytes)
-		
-# 		# The other side has closed the socket
-# 		if not tmpBuff:
-# 			break
-		
-# 		# Add the received bytes to the buffer
-# 		recvBuff += tmpBuff
-	
-# 	return recvBuff
-
-# def recvPacket(sock):
-#     packetNumberBuffer = b""
-#     packetNumber = 0
-
-#     packetNumberBuffer = recvData_as_bytes(sock, 2)
-#     packetNumber = packetNumber.from_bytes(packetNumberBuffer)
-#     print ("Packet Number: ", packetNumber)
-
-#     packetCommandNameBuffer = b""
-#     commandName = ""
-
-#     packetCommandNameBuffer = recvData_as_bytes(sock, 6)
-#     commandName = packetCommandNameBuffer.decode()
-#     print ("Packet Command: " + commandName)
-
-#     packetDataSizeBuffer = b""
-#     dataSize = 0
-
-#     packetDataSizeBuffer = recvData_as_bytes(sock, 4)
-#     dataSize = dataSize.from_bytes(packetDataSizeBuffer)
-#     print ("Packet Data Size: ", dataSize)
-
-#     dataBuffer = b""
-
-#     if dataSize > 0:
-#         dataBuffer = recvData_as_bytes(sock, dataSize)
-#         print ("Data: " + dataBuffer)
-
-#     if commandName in responses_to_packets:
-#          responses_to_packets[commandName](dataBuffer)
-#     else:
-#          respones_to_UnrecognizedPacket(dataBuffer)
-
+# Responses to packets
 
 def response_to_ConnectPacket(packetNumber: int, data: bytes):
     print ("recieved a connection packet")
@@ -218,46 +164,7 @@ responses_to_packets = {
      "0FStat" : response_to_FileStatusPacket,
 }
 
-# Check if the help command was input
-if len(sys.argv) == 2:
-    if sys.argv[1] == "help" or sys.argv[1] == "h":
-        print ("This is the python client script for a simple ftp server")
-        print ("To setup the client first make sure the server is running")
-        print ("Next run the following command:")
-        print (sys.argv[0] + " <server machine> <server port>")
-        print ("To see this message again use the following command")
-        print (sys.argv[0] + " help")
-        quit()
-    else:
-        print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
-        quit()
-
-# Check number of command line args
-if len(sys.argv) != 3:
-    print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
-    quit()
-
-# Gets arguments
-serverMachineAddress = str(sys.argv[1])
-serverControlPortNumber = int(sys.argv[2])
-
-# Sets the port number that data will be recieved on
-dataPortNumber = 200
-
-serverDataPortNumber = 0
-
-# Creates a control socket
-controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# Connect to the server
-controlSock.connect((serverMachineAddress, serverControlPortNumber))
-
-packet.sendConnectPacket(controlSock, 1, dataPortNumber)
-lastReviecedPacket = packet.recvPacket(controlSock)
-if lastReviecedPacket.command == "ConAck":
-    response_to_ConnectAcknowledmentPacket(lastReviecedPacket.number, lastReviecedPacket.data)
-
-dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Building socks
 
 def buildControlSock():
     # Creates a control socket
@@ -278,7 +185,20 @@ def connectSock(sock: socket.socket, address, port):
     packet.sendConnectPacket(sock, 1, dataPortNumber)
     packet.recvPacket(sock, responses_to_packets, response_to_UnrecognizedPacket)
 
-print("Connecting to the server")
+def lastPacketIsAck(packet):
+    print("Checking if the last packet is Ack")
+    if packet.command == "000Ack":
+        return 100
+    else:
+        return 200
+
+def lastPackIsControlAck(packet):
+    print("Checking if the last packet is ConAck")
+    if packet.command == "ConAck":
+        serverDataPortNumber.from_bytes(packet.data)
+        return 100
+    else:
+        return 200
 
 def execute_withValue(value):
     print(value) 
@@ -339,29 +259,96 @@ def allOtherErrors():
 # myProcedureManager.validate(nameOfProcedureToRun, validate)
 
 setupProcedure = procedures.Procedure()
-# setupProcedure.buildStep()
+setupProcedure.buildStep(lambda: packet.sendConnectPacket(controlSock, 1, dataPortNumber), validate, passed, error1, error2, allOtherErrors)
+setupProcedure.buildStep(lambda: packet.sendAcknowledgePacket(controlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
 
 getProcedure = procedures.Procedure()
-getProcedure.buildStep(lambda: packet.sendGetPacket(controlSock, 1), passed, error1, error2, allOtherErrors)
-getProcedure.buildStep(lambda: connectSock(dataSock, serverMachineAddress, serverDataPortNumber), passed, error1, error2, allOtherErrors)
-getProcedure.buildStep(lambda: packet.sendAcknowledgePacket(dataSock, 1, 1), passed, error1, error2, allOtherErrors)
+getProcedure.buildStep(lambda: packet.sendGetPacket(controlSock, 1),
+                        lambda: lastPacketIsAck(lastReviecedPacket),
+                        passed, error1, error2, allOtherErrors)
+getProcedure.buildStep(lambda: packet.sendAcknowledgePacket(controlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
 
 putProcedure = procedures.Procedure()
-putProcedure.buildStep(lambda: packet.sendPutPacket(controlSock, 1), passed, error1, error2, allOtherErrors)
-putProcedure.buildStep(lambda: connectSock(dataSock, serverMachineAddress, serverDataPortNumber), passed, error1, error2, allOtherErrors)
-putProcedure.buildStep(lambda: packet.sendAcknowledgePacket(dataSock, 1, 1), passed, error1, error2, allOtherErrors)
+putProcedure.buildStep(lambda: packet.sendPutPacket(controlSock, 1),
+                        lambda: lastPacketIsAck(lastReviecedPacket),
+                        passed, error1, error2, allOtherErrors)
+putProcedure.buildStep(lambda: packet.sendAcknowledgePacket(controlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
 
+deleteProcedure = procedures.Procedure()
+deleteProcedure.buildStep(lambda: packet.sendDeletePacket(controlSock, 1),
+                        lambda: lastPacketIsAck(lastReviecedPacket),
+                        passed, error1, error2, allOtherErrors)
+deleteProcedure.buildStep(lambda: packet.sendAcknowledgePacket(controlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
+
+listProcedure = procedures.Procedure()
+listProcedure.buildStep(lambda: packet.sendListRequestPacket(controlSock, 1),
+                        lambda: lastPacketIsAck(lastReviecedPacket),
+                        passed, error1, error2, allOtherErrors)
+listProcedure.buildStep(lambda: packet.sendAcknowledgePacket(controlSock, 1, 1), validate, passed, error1, error2, allOtherErrors)
+
+disconnectProcedure = procedures.Procedure()
+disconnectProcedure.buildStep(lambda: packet.sendDisconnectPacket(controlSock, 1), validate, passed, error1, error2, allOtherErrors)
 
 procedureManager = procedures.ProcedureManager()
-procedureManager.addProcedure("Get",getProcedure)
+procedureManager.addProcedure("Setup", setupProcedure)
+procedureManager.addProcedure("Get", getProcedure)
 procedureManager.addProcedure("Put", putProcedure)
+procedureManager.addProcedure("Delete", deleteProcedure)
+procedureManager.addProcedure("List", listProcedure)
+procedureManager.addProcedure("Quit", disconnectProcedure)
 
-def lastPacketIsAck(packet):
-    print("Checking if the last packet is Ack")
-    if packet.command == "000Ack":
-        return 100
+# Check if the help command was input
+if len(sys.argv) == 2:
+    if sys.argv[1] == "help" or sys.argv[1] == "h":
+        print ("This is the python client script for a simple ftp server")
+        print ("To setup the client first make sure the server is running")
+        print ("Next run the following command:")
+        print (sys.argv[0] + " <server machine> <server port>")
+        print ("To see this message again use the following command")
+        print (sys.argv[0] + " help")
+        quit()
     else:
-        return 200
+        print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
+        quit()
+
+# Check number of command line args
+if len(sys.argv) != 3:
+    print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
+    quit()
+
+# Gets arguments
+serverMachineAddress = str(sys.argv[1])
+serverControlPortNumber = int(sys.argv[2])
+
+# Sets the port number that data will be recieved on
+dataPortNumber = 200
+
+serverDataPortNumber = 0
+
+# Creates a control and data socket
+controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+lastReviecedPacket = packet.Packet()
+
+# Connect control sock to the server
+controlSock.connect((serverMachineAddress, serverControlPortNumber))
+
+# packet.sendConnectPacket(controlSock, 1, dataPortNumber)
+# lastReviecedPacket = packet.recvPacket(controlSock)
+# if lastReviecedPacket.command == "ConAck":
+#     response_to_ConnectAcknowledmentPacket(lastReviecedPacket.number, lastReviecedPacket.data)
+
+print("Connecting to the server")
+
+procedureManager.startProcedure("Setup")
+lastReviecedPacket = packet.recvPacket(controlSock)
+procedureManager.validateActiveProcedure()
+# procedureManager.validateActiveProcedure()
+
+
+
+
+
 
 while True:
 
@@ -377,5 +364,6 @@ while True:
         errorFTPCommand(inputArgs)
     
     lastReviecedPacket = packet.recvPacket(controlSock)
-    procedureManager.validateActiveProcedure(lambda: lastPacketIsAck(lastReviecedPacket))
+    if(procedureManager.anyProcedureIsRunning()):
+        procedureManager.validateActiveProcedure()
 
