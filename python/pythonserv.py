@@ -21,76 +21,22 @@ def get_ip():
 
 
 
-# def recvData_as_bytes(sock, numBytes):
-
-# 	# TODO: turn these empty string buffers into binary buffers
-
-# 	# The buffer
-# 	recvBuff = b""
-	
-# 	# The temporary buffer
-# 	tmpBuff = b""
-	
-# 	# Keep receiving till all is received
-# 	while len(recvBuff) < numBytes:
-		
-# 		# Attempt to receive bytes
-# 		tmpBuff =  sock.recv(numBytes)
-		
-# 		# The other side has closed the socket
-# 		if not tmpBuff:
-# 			break
-		
-# 		# Add the received bytes to the buffer
-# 		recvBuff += tmpBuff
-	
-# 	return recvBuff
-
-# def recvPacket(sock):
-#     packetNumberBuffer = b""
-#     packetNumber = 0
-
-#     packetNumberBuffer = recvData_as_bytes(sock, 2)
-#     packetNumber = packetNumber.from_bytes(packetNumberBuffer)
-#     print ("Packet Number: ", packetNumber)
-
-#     packetCommandNameBuffer = b""
-#     commandName = ""
-
-#     packetCommandNameBuffer = recvData_as_bytes(sock, 6)
-#     commandName = packetCommandNameBuffer.decode()
-#     print ("Packet Command: " + commandName)
-
-#     packetDataSizeBuffer = b""
-#     dataSize = 0
-
-#     packetDataSizeBuffer = recvData_as_bytes(sock, 4)
-#     dataSize = dataSize.from_bytes(packetDataSizeBuffer)
-#     print ("Packet Data Size: ", dataSize)
-
-#     dataBuffer = b""
-
-#     if dataSize > 0:
-#         dataBuffer = recvData_as_bytes(sock, dataSize)
-#         print ("Data: " + dataBuffer)
-
-#     if commandName in responses_to_packets:
-#          responses_to_packets[commandName](dataBuffer)
-#     else:
-#          respones_to_UnrecognizedPacket(packetNumber, dataBuffer)
-
-def response_to_ConnectPacket(packetNumber: int, data: bytes):
+def response_to_ConnectPacket(recieved: packet.Packet):
     print ("recieved a connection packet")
 
-    clientDataPortNumber.from_bytes(data)
+    clientDataPortNumber.from_bytes(recieved.data)
 
     packet.sendConnectAcknowledgmentPacket(clientControlSock, 1, dataPortNumber)
 
-def response_to_ConnectAcknowledmentPacket(packetNumber: int, data: bytes):
+def response_to_ConnectAcknowledmentPacket(recieved: packet.Packet):
     print ("recieved a connection acknowledgement packet")
+
+    packetNumber = 0
+    packetNumber.from_bytes(recieved.data)
+
     packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
-def response_to_DisconnectPacket(packetNumber: int, data: bytes):
+def response_to_DisconnectPacket(recieved: packet.Packet):
     print ("closing")
 
     # Close our side
@@ -98,44 +44,59 @@ def response_to_DisconnectPacket(packetNumber: int, data: bytes):
     controlSock.close()
     quit()
 
-def response_to_GetPacket(packetNumber: int, data: bytes):
+def response_to_GetPacket(recieved: packet.Packet):
     print ("recieved a get packet")
 
     # TODO: check if file exists
     # If file exists open Data sock
 
-    dataSock.bind(get_ip(), dataPortNumber)
+    # dataSock.bind((get_ip(), dataPortNumber))
+
+    packetNumber = 0
+    packetNumber.from_bytes(recieved.data)
 
     packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
-def response_to_PutPacket(packetNumber: int, data: bytes):
+def response_to_PutPacket(recieved: packet.Packet):
     print ("recieved a put packet")
+
+    packetNumber = 0
+    packetNumber.from_bytes(recieved.data)
+
     packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
-def response_to_DeletePacket(packetNumber: int, data: bytes):
+def response_to_DeletePacket(recieved: packet.Packet):
     print ("recieved a delete packet")
+
+    packetNumber = 0
+    packetNumber.from_bytes(recieved.data)
+
     packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
-def response_to_ListRequestPacket(packetNumber: int, data: bytes):
+def response_to_ListRequestPacket(recieved: packet.Packet):
     print ("recieved a list request packet")
+
+    packetNumber = 0
+    packetNumber.from_bytes(recieved.data)
+
     packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
-def response_to_AcknowledgePacket(packetNumber: int, data: bytes):
+def response_to_AcknowledgePacket(recieved: packet.Packet):
     print ("recieved a acknowledge packet")
 
-def response_to_InvalidPacket(packetNumber: int, data: bytes):
+def response_to_InvalidPacket(recieved: packet.Packet):
     print ("recieved a invalid packet")
 
-def response_to_FileManifestPacket(packetNumber: int, data: bytes):
+def response_to_FileManifestPacket(recieved: packet.Packet):
     print ("recieved a file manifest packet")
 
-def response_to_FilePacket(packetNumber: int, data: bytes):
+def response_to_FilePacket(recieved: packet.Packet):
     print ("recieved a file packet")
 
-def response_to_FileStatusPacket(packetNumber: int, data: bytes):
+def response_to_FileStatusPacket(recieved: packet.Packet):
     print ("recieved a file status packet")
 
-def response_to_UnrecognizedPacket(packetNumber: int, data: bytes):
+def response_to_UnrecognizedPacket(recieved: packet.Packet):
      print ("error: recieved unrecognized packet")
 
 responses_to_packets = {
@@ -152,6 +113,12 @@ responses_to_packets = {
      "00File" : response_to_FilePacket,
      "0FStat" : response_to_FileStatusPacket,
 }
+
+def respondToPacket(packet: packet.Packet):
+    if packet.command in responses_to_packets:
+        responses_to_packets[packet.command](packet)
+    else:
+        response_to_UnrecognizedPacket(packet)
 
 # Check number of command line args
 if len(sys.argv) != 2:
@@ -205,5 +172,6 @@ print ("\n")
 
 
 while True:
-    packet.recvPacket(clientControlSock, responses_to_packets, response_to_UnrecognizedPacket)
+    lastPacket = packet.recvPacket(clientControlSock)
+    respondToPacket(lastPacket)
     
