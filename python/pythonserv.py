@@ -55,6 +55,9 @@ def response_to_GetPacket(recieved: packet.Packet):
     packetNumber = 0
     packetNumber.from_bytes(recieved.data)
 
+    global runningProcedure
+    runningProcedure = "Get"
+
     packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
 def response_to_PutPacket(recieved: packet.Packet):
@@ -147,6 +150,21 @@ controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+# Procedures
+isExpectingPacket = False
+expectedPacketName = ""
+
+runningProcedure = ""
+procedureStep = 0
+
+def sendAck(reived: packet.Packet):
+    packet.sendAcknowledgePacket(clientControlSock, 1, 1)
+
+allProcedures = {
+    "Setup" : (["000Ack"],[response_to_AcknowledgePacket]),
+    "Get" : (["00FMan", "000Get"],[sendAck, sendAck])
+}
+
 # Bind the socket to the port
 controlSock.bind((get_ip(), controlPortNumber))
 
@@ -172,6 +190,23 @@ print ("\n")
 
 
 while True:
-    lastPacket = packet.recvPacket(clientControlSock)
-    respondToPacket(lastPacket)
+
+    if(runningProcedure != ""):
+        # a procedure is running
+
+        procedureExpectedPackets, procedureResponses = allProcedures[runningProcedure]
+
+        if procedureStep < len(procedureExpectedPackets):
+            lastPacket = packet.recvPacket(clientControlSock)
+            if(packet.isExpectedPacket(lastPacket, procedureExpectedPackets[procedureStep])):
+                procedureResponses[procedureStep](lastPacket)
+                procedureStep += 1
+        else:
+            runningProcedure = ""
+            procedureStep = 0
+    else:
+        # No procedures are running listen for new procedures
+
+        lastPacket = packet.recvPacket(clientControlSock)
+        respondToPacket(lastPacket)
     

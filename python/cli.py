@@ -30,6 +30,8 @@ def get_ip():
 
 def setUp():
     expectPacket("ConAck")
+    global runningProcedure
+    runningProcedure = "SetUp"
     packet.sendConnectPacket(controlSock, 1, dataPortNumber)
 
 # Downloads a file
@@ -40,6 +42,8 @@ def getFTPCommand(inputArgs):
     fileName = inputArgs[1]
     print("Getting file: " + fileName)
     expectPacket("000Ack")
+    global runningProcedure
+    runningProcedure = "Get"
     packet.sendGetPacket(controlSock, 1, fileName)
 
 # Uploads a file
@@ -50,6 +54,8 @@ def putFTPCommand(inputArgs):
     fileName = inputArgs[1]
     print("Uploading file: " + fileName)
     expectPacket("000Ack")
+    global runningProcedure
+    runningProcedure = "Put"
     packet.sendPutPacket(controlSock, 1, fileName)
 
 # Deletes a file
@@ -60,6 +66,8 @@ def deleteFTPCommand(inputArgs):
     fileName = inputArgs[1]
     print("Deleting file: " + fileName)
     expectPacket("000Ack")
+    global runningProcedure
+    runningProcedure = "Delete"
     packet.sendDeletePacket(controlSock, 1, fileName)
 
 # Lists out all valid commands
@@ -77,6 +85,8 @@ def helpFTPCommand(inputArgs):
 def lsFTPCommand(inputArgs):
     print("Listing file names")
     expectPacket("000Ack")
+    global runningProcedure
+    runningProcedure = "List"
     packet.sendListRequestPacket(controlSock, 1)
 
 # Quits execution
@@ -215,22 +225,37 @@ dataPortNumber = 200
 
 serverDataPortNumber = 0
 
-isExpectingPacket = False
-expectedPacketName = ""
-
 # Creates a control socket
 controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Connect to the server
 controlSock.connect((serverMachineAddress, serverControlPortNumber))
 
+# Procedures
+isExpectingPacket = False
+expectedPacketName = ""
+
+runningProcedure = ""
+procedureStep = 0
+
+def sendFMan(recived: packet.Packet):
+    packet.sendFileManifestPacket(controlSock, 1)
+
+def sendGet(recived: packet.Packet):
+    packet.sendGetPacket(controlSock, 1, "Name")
+
+allProcedures = {
+    "SetUp" : (["ConAck"],[response_to_ConnectAcknowledmentPacket]),
+    "Get" : (["000Ack", "000Ack", "000Ack"],[ sendFMan, sendGet, response_to_AcknowledgePacket])
+}
+
 # packet.sendConnectPacket(controlSock, 1, dataPortNumber)
 setUp()
-if(isExpectingPacket):
-    print("Expecting packet")
-    lastPacket = packet.recvPacket(controlSock)
-    if(packet.isExpectedPacket(lastPacket, expectedPacketName)):
-        respondToPacket(lastPacket)
+# if(isExpectingPacket):
+#     print("Expecting packet")
+#     lastPacket = packet.recvPacket(controlSock)
+#     if(packet.isExpectedPacket(lastPacket, expectedPacketName)):
+#         respondToPacket(lastPacket)
 
 dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -247,20 +272,30 @@ print("Connecting to the server")
 
 while True:
 
-    print ("ftp>", end =" ")
+    if(runningProcedure != ""):
+        # a procedure is running
 
-    inputRaw = input()
+        procedureExpectedPackets, procedureResponses = allProcedures[runningProcedure]
 
-    inputArgs = list(map(str, inputRaw.split(' ')))
-
-    if inputArgs[0] in ftpCommands:
-        ftpCommands[inputArgs[0]](inputArgs)
+        if procedureStep < len(procedureExpectedPackets):
+            lastPacket = packet.recvPacket(controlSock)
+            if(packet.isExpectedPacket(lastPacket, procedureExpectedPackets[procedureStep])):
+                procedureResponses[procedureStep](lastPacket)
+                procedureStep += 1
+        else:
+            runningProcedure = ""
+            procedureStep = 0
     else:
-        errorFTPCommand(inputArgs)
-    
-    if(isExpectingPacket):
-        print("Expecting packet")
-        lastPacket = packet.recvPacket(controlSock)
-        if(packet.isExpectedPacket(lastPacket, expectedPacketName)):
-            respondToPacket(lastPacket)
+
+
+        print ("ftp>", end =" ")
+
+        inputRaw = input()
+
+        inputArgs = list(map(str, inputRaw.split(' ')))
+
+        if inputArgs[0] in ftpCommands:
+            ftpCommands[inputArgs[0]](inputArgs)
+        else:
+            errorFTPCommand(inputArgs)
 
