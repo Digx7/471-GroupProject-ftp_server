@@ -36,7 +36,6 @@ def recvData_as_bytes(sock, numBytes):
 	return recvBuff
 
 def recvPacket(sock):
-    print("Reciveing a packet")
     packetNumberBuffer = b""
     packetNumber = 0
 
@@ -97,7 +96,6 @@ def sendConnectPacket(
     commandName_as_bytes = commandName.encode()
     dataSize_as_bytes = dataSize.to_bytes(4)
 
-    print("Sending Con Packet")
     sendPacket(sock, packetNumber_as_bytes, commandName_as_bytes, dataSize_as_bytes, data_as_bytes)
 
 def sendConnectAcknowledgmentPacket(
@@ -115,7 +113,6 @@ def sendConnectAcknowledgmentPacket(
     commandName_as_bytes = commandName.encode()
     dataSize_as_bytes = dataSize.to_bytes(4)
 
-    print ("Sending ConAck packet")
     sendPacket(sock, packetNumber_as_bytes, commandName_as_bytes, dataSize_as_bytes, data_as_bytes)
 
 def sendDisconnectPacket(

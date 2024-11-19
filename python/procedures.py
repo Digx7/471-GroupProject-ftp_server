@@ -1,33 +1,27 @@
 import socket
 import os
 import sys
-# import cli
-# import pythonserv
 
 
 class Step:
 
     def __init__(self, 
-                execute_instructions,
-                validate_instructions, 
-                passed_instructions, 
+                execute_instructions, 
+                passed_instructios, 
                 error1_instructions, 
                 error2_instructions, 
                 allOtherError_instructions):
         self.execute_instructions = execute_instructions
-        self.validate_instructions = validate_instructions
-        self.passed_instructions = passed_instructions
+        self.passed_instructions = passed_instructios
         self.error1_instructions = error1_instructions
         self.error2_instructions = error2_instructions
-        self.allOtherError_instructions = allOtherError_instructions
+        self.allOtherErrors_instructions = allOtherError_instructions
 
     def execute(self):
-        print("Running Execute on a step")
         self.execute_instructions()
 
-    def validate(self):
-        print("Running validate on a step")
-        match self.validate_instructions():
+    def validate(self, state):
+        match state():
             case 100:
                 self.passed()
                 return True
@@ -42,20 +36,16 @@ class Step:
                 return False
 
     def passed(self):
-        print("running passed on a step")
         self.passed_instructions()
 
     def error1(self):
-        print("running error 1 on a step")
         self.error1_instructions()
 
     def error2(self):
-        print("running error 2 on a step")
         self.error2_instructions()
 
     def allOtherErrors(self):
-        print("running all other error on a step")
-        self.allOtherError_instructions()
+        self.allOtherErrors_instructions()
 
 
 class Procedure:
@@ -65,11 +55,10 @@ class Procedure:
         self.currentStep = 0
         self.isEnabled = False
 
-    def buildStep(self, validate, execute, passed, error1, error2, allOtherErrors):
-        self.steps.append(Step(execute, validate, passed, error1, error2, allOtherErrors))
+    def buildStep(self, execute, passed, error1, error2, allOtherErrors):
+        self.steps.append(Step(execute, passed, error1, error2, allOtherErrors))
 
     def run(self):
-        print("running run on a procedure")
         if not self.isEnabled:
             print("tried to run an unActived procedure")
             return 0
@@ -80,16 +69,14 @@ class Procedure:
             return 1
         else:
             print("ran out of steps")
-            # self.isEnabled = False
             return 2
     
-    def validate(self):
-        print("running validate on a procedure")
-        if self.currentStep > len(self.steps):
+    def validate(self, state):
+        if self.currentStep >= len(self.steps):
             print("error: attempted to validate a step out side of step range")
             return
         
-        if self.steps[self.currentStep].validate():
+        if self.steps[self.currentStep].validate(state):
             print("Moving to next step")
             self.currentStep += 1
             self.run()
@@ -138,14 +125,13 @@ class ProcedureManager:
         self.procedures[name].isEnabled = True
         self.procedures[name].run()
 
-    def validate(self, procedureName):
-        self.procedures[procedureName].validate()
+    def validate(self, procedureName, state):
+        self.procedures[procedureName].validate(state)
 
-    def validateActiveProcedure(self):
-        print("Validating the active procedure")
+    def validateActiveProcedure(self, state):
         for name in self.procedures:
             if self.procedures[name].isEnabled:
-                self.procedures[name].validate()
+                self.procedures[name].validate(state)
                 return True
             
         return False
