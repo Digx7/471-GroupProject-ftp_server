@@ -28,7 +28,12 @@ def get_ip():
 
 # All the ftp commands availble once the connection is set
 
-def setUp():
+def connectToServer():
+    print("Connecting to the server")
+
+    # Connect to the server
+    controlSock.connect((serverMachineAddress, serverControlPortNumber))
+    
     expectPacket("ConAck")
     global runningProcedure
     runningProcedure = "SetUp"
@@ -197,46 +202,7 @@ def notExpectingPacket():
 
     isExpectingPacket = False
 
-# Check if the help command was input
-if len(sys.argv) == 2:
-    if sys.argv[1] == "help" or sys.argv[1] == "h":
-        print ("This is the python client script for a simple ftp server")
-        print ("To setup the client first make sure the server is running")
-        print ("Next run the following command:")
-        print (sys.argv[0] + " <server machine> <server port>")
-        print ("To see this message again use the following command")
-        print (sys.argv[0] + " help")
-        quit()
-    else:
-        print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
-        quit()
 
-# Check number of command line args
-if len(sys.argv) != 3:
-    print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
-    quit()
-
-# Gets arguments
-serverMachineAddress = str(sys.argv[1])
-serverControlPortNumber = int(sys.argv[2])
-
-# Sets the port number that data will be recieved on
-dataPortNumber = 200
-
-serverDataPortNumber = 0
-
-# Creates a control socket
-controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# Connect to the server
-controlSock.connect((serverMachineAddress, serverControlPortNumber))
-
-# Procedures
-isExpectingPacket = False
-expectedPacketName = ""
-
-runningProcedure = ""
-procedureStep = 0
 
 def sendFMan(recived: packet.Packet):
     packet.sendFileManifestPacket(controlSock, 1)
@@ -244,20 +210,7 @@ def sendFMan(recived: packet.Packet):
 def sendGet(recived: packet.Packet):
     packet.sendGetPacket(controlSock, 1, "Name")
 
-allProcedures = {
-    "SetUp" : (["ConAck"],[response_to_ConnectAcknowledmentPacket]),
-    "Get" : (["000Ack", "000Ack", "000Ack"],[ sendFMan, sendGet, response_to_AcknowledgePacket])
-}
 
-# packet.sendConnectPacket(controlSock, 1, dataPortNumber)
-setUp()
-# if(isExpectingPacket):
-#     print("Expecting packet")
-#     lastPacket = packet.recvPacket(controlSock)
-#     if(packet.isExpectedPacket(lastPacket, expectedPacketName)):
-#         respondToPacket(lastPacket)
-
-dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
 
@@ -268,34 +221,109 @@ def buildControlSock():
     # Connect to the server
     controlSock.connect((serverMachineAddress, serverControlPortNumber))
 
-print("Connecting to the server")
-
-while True:
-
-    if(runningProcedure != ""):
-        # a procedure is running
-
-        procedureExpectedPackets, procedureResponses = allProcedures[runningProcedure]
-
-        if procedureStep < len(procedureExpectedPackets):
-            lastPacket = packet.recvPacket(controlSock)
-            if(packet.isExpectedPacket(lastPacket, procedureExpectedPackets[procedureStep])):
-                procedureResponses[procedureStep](lastPacket)
-                procedureStep += 1
+def validateCommandLineArgs():
+    # Check if the help command was input
+    if len(sys.argv) == 2:
+        if sys.argv[1] == "help" or sys.argv[1] == "h":
+            print ("This is the python client script for a simple ftp server")
+            print ("To setup the client first make sure the server is running")
+            print ("Next run the following command:")
+            print (sys.argv[0] + " <server machine> <server port>")
+            print ("To see this message again use the following command")
+            print (sys.argv[0] + " help")
+            quit()
         else:
-            runningProcedure = ""
-            procedureStep = 0
-    else:
+            print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
+            quit()
+
+    # Check number of command line args
+    if len(sys.argv) != 3:
+        print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
+        quit()
 
 
-        print ("ftp>", end =" ")
+def clientSetup():
+    validateCommandLineArgs()
 
-        inputRaw = input()
+    # Global variables
+    global serverMachineAddress
+    global serverControlPortNumber
 
-        inputArgs = list(map(str, inputRaw.split(' ')))
+    global dataPortNumber
+    global serverDataPortNumber
 
-        if inputArgs[0] in ftpCommands:
-            ftpCommands[inputArgs[0]](inputArgs)
+    global controlSock
+    global dataSock
+
+    global isExpectingPacket
+    global expectedPacketName
+    global runningProcedure
+    global procedureStep
+    global allProcedures
+
+    # Gets command line arguments
+    serverMachineAddress = str(sys.argv[1])
+    serverControlPortNumber = int(sys.argv[2])
+
+    # Sets the port number that data will be recieved on
+    dataPortNumber = 200
+    serverDataPortNumber = 0
+
+    # Creates a control and data sockets socket
+    controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Procedures
+    isExpectingPacket = False
+    expectedPacketName = ""
+
+    runningProcedure = ""
+    procedureStep = 0
+
+    allProcedures = {
+    "SetUp" : (["ConAck"],[response_to_ConnectAcknowledmentPacket]),
+    "Get" : (["000Ack", "000Ack", "000Ack"],[ sendFMan, sendGet, response_to_AcknowledgePacket])
+    }
+
+    connectToServer()
+
+def coreLoop():
+    global runningProcedure
+    global procedureStep
+    global allProcedures
+    
+    while True:
+
+        if(runningProcedure != ""):
+            # a procedure is running
+
+            procedureExpectedPackets, procedureResponses = allProcedures[runningProcedure]
+
+            if procedureStep < len(procedureExpectedPackets):
+                lastPacket = packet.recvPacket(controlSock)
+                if(packet.isExpectedPacket(lastPacket, procedureExpectedPackets[procedureStep])):
+                    procedureResponses[procedureStep](lastPacket)
+                    procedureStep += 1
+            else:
+                runningProcedure = ""
+                procedureStep = 0
         else:
-            errorFTPCommand(inputArgs)
 
+
+            print ("ftp>", end =" ")
+
+            inputRaw = input()
+
+            inputArgs = list(map(str, inputRaw.split(' ')))
+
+            if inputArgs[0] in ftpCommands:
+                ftpCommands[inputArgs[0]](inputArgs)
+            else:
+                errorFTPCommand(inputArgs)
+
+def main():
+    clientSetup()
+    coreLoop()
+
+if __name__=="__main__":
+    main()

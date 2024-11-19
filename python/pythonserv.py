@@ -19,6 +19,26 @@ def get_ip():
     s.close()
     return ip
 
+def openControlSock():
+    global clientControlSock
+    
+    # Bind the socket to the port
+    controlSock.bind((get_ip(), controlPortNumber))
+
+    # Start listening on the socket
+    controlSock.listen()
+
+    sockName = controlSock.getsockname()
+
+    print ("Waiting for connections...")
+    print (sockName)
+
+
+    # Accept connections
+    clientControlSock, addr = controlSock.accept()
+
+    print ("Accepted connection from client: ", addr)
+    print ("\n")
 
 
 def response_to_ConnectPacket(recieved: packet.Packet):
@@ -123,39 +143,7 @@ def respondToPacket(packet: packet.Packet):
     else:
         response_to_UnrecognizedPacket(packet)
 
-# Check number of command line args
-if len(sys.argv) != 2:
-    print ("Inteded usage: pythonserv.py <PORTNUMBER>")
-    quit()
 
-# Checks if the help argument was passed
-if sys.argv[1] == "help" or sys.argv[1] == "h":
-    print("This is the python server script for a simple ftp server")
-    print("To set the server up run the following command")
-    print("python pythonserv.py <PORTNUMBER>")
-    print("To see this message again just type")
-    print("python pythonserv.py help")
-    quit()
-
-# Sets the main control port to list to
-controlPortNumber = int(sys.argv[1])
-
-# Sets the port number that data will be recieved on
-dataPortNumber = 300
-
-clientDataPortNumber = 0
-
-# Create a welcome socket. 
-controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# Procedures
-isExpectingPacket = False
-expectedPacketName = ""
-
-runningProcedure = ""
-procedureStep = 0
 
 def sendAck(reived: packet.Packet):
     packet.sendAcknowledgePacket(clientControlSock, 1, 1)
@@ -165,48 +153,91 @@ allProcedures = {
     "Get" : (["00FMan", "000Get"],[sendAck, sendAck])
 }
 
-# Bind the socket to the port
-controlSock.bind((get_ip(), controlPortNumber))
-
-# Start listening on the socket
-controlSock.listen()
-
-sockName = controlSock.getsockname()
-
-print ("Waiting for connections...")
-print (sockName)
-
-# print(get_ip())
 
 
-# Accept connections
-clientControlSock, addr = controlSock.accept()
+def validateCommandLineArgs():
+    # Check number of command line args
+    if len(sys.argv) != 2:
+        print ("Inteded usage: pythonserv.py <PORTNUMBER>")
+        quit()
 
-# TODO: get connection and do command
+    # Checks if the help argument was passed
+    if sys.argv[1] == "help" or sys.argv[1] == "h":
+        print("This is the python server script for a simple ftp server")
+        print("To set the server up run the following command")
+        print("python pythonserv.py <PORTNUMBER>")
+        print("To see this message again just type")
+        print("python pythonserv.py help")
+        quit()
 
-print ("Accepted connection from client: ", addr)
-print ("\n")
 
+def serverSetup():
+    validateCommandLineArgs()
 
+    # Global variables
+    global controlPortNumber
+    global dataPortNumber
+    global clientDataPortNumber
+    global controlSock
+    global dataSock
+    global clientControlSock
+    global isExpectingPacket
+    global expectedPacketName
+    global runningProcedure
+    global procedureStep
 
-while True:
+    # Sets the main control port to list to
+    controlPortNumber = int(sys.argv[1])
 
-    if(runningProcedure != ""):
-        # a procedure is running
+    # Sets the port number that data will be recieved on
+    dataPortNumber = 300
 
-        procedureExpectedPackets, procedureResponses = allProcedures[runningProcedure]
+    clientDataPortNumber = 0
 
-        if procedureStep < len(procedureExpectedPackets):
-            lastPacket = packet.recvPacket(clientControlSock)
-            if(packet.isExpectedPacket(lastPacket, procedureExpectedPackets[procedureStep])):
-                procedureResponses[procedureStep](lastPacket)
-                procedureStep += 1
-        else:
-            runningProcedure = ""
-            procedureStep = 0
-    else:
-        # No procedures are running listen for new procedures
+    # Create a welcome socket. 
+    controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        lastPacket = packet.recvPacket(clientControlSock)
-        respondToPacket(lastPacket)
+    dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Procedures
+    isExpectingPacket = False
+    expectedPacketName = ""
+
+    runningProcedure = ""
+    procedureStep = 0
+
+    openControlSock()
+
     
+def coreLoop():
+    global runningProcedure
+    global procedureStep
+    global allProcedures
+
+    while True:
+
+        if(runningProcedure != ""):
+            # a procedure is running
+
+            procedureExpectedPackets, procedureResponses = allProcedures[runningProcedure]
+
+            if procedureStep < len(procedureExpectedPackets):
+                lastPacket = packet.recvPacket(clientControlSock)
+                if(packet.isExpectedPacket(lastPacket, procedureExpectedPackets[procedureStep])):
+                    procedureResponses[procedureStep](lastPacket)
+                    procedureStep += 1
+            else:
+                runningProcedure = ""
+                procedureStep = 0
+        else:
+            # No procedures are running listen for new procedures
+
+            lastPacket = packet.recvPacket(clientControlSock)
+            respondToPacket(lastPacket)
+
+def main():
+    serverSetup()
+    coreLoop()
+
+if __name__=="__main__":
+    main()
