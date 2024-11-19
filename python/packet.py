@@ -84,11 +84,12 @@ def sendConnectPacket(
         sock: socket, 
         packetNumber: int,
         dataPortNumber: int):
-    print("Sending Con")
+    print("Sending Con with data port number ", dataPortNumber)
 
     commandName = "000Con"
 
     data_as_bytes = dataPortNumber.to_bytes(4)
+    print("",data_as_bytes)
 
     dataSize = len(data_as_bytes)
 
@@ -102,7 +103,7 @@ def sendConnectAcknowledgmentPacket(
         sock: socket, 
         packetNumber: int,
         dataPortNumber: int):
-    print("Sending ConAck")
+    print("Sending ConAck with data port number ", dataPortNumber)
 
     commandName = "ConAck"
 

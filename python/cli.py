@@ -39,6 +39,16 @@ def connectToServer():
     runningProcedure = "SetUp"
     packet.sendConnectPacket(controlSock, 1, dataPortNumber)
 
+def connectToServer_On_DataChannel():
+    print("Connecting to data channel")
+
+    dataSock.connect((serverMachineAddress, serverDataPortNumber))
+
+    expectPacket("ConAck")
+    # global runningProcedure
+    # runningProcedure = "SetUp"
+    packet.sendConnectPacket(dataSock, 1, dataPortNumber)
+
 # Downloads a file
 def getFTPCommand(inputArgs):
     if len(inputArgs) < 2:
@@ -128,12 +138,13 @@ def response_to_ConnectPacket(recieved: packet.Packet):
 def response_to_ConnectAcknowledmentPacket(recieved: packet.Packet):
     print ("recieved a connection acknowledgement packet")
 
-    packetNumber = 0
-    packetNumber.from_bytes(recieved.data)
+    serverDataPortNumber.from_bytes(recieved.data)
+
+    print ("Server data port number is ", serverDataPortNumber)
 
     notExpectingPacket()
 
-    packet.sendAcknowledgePacket(controlSock, 1, packetNumber)
+    packet.sendAcknowledgePacket(controlSock, 1, recieved.number)
 
 def response_to_DisconnectPacket(recieved: packet.Packet):
     print ("closing")
@@ -210,7 +221,8 @@ def sendFMan(recived: packet.Packet):
 def sendGet(recived: packet.Packet):
     packet.sendGetPacket(controlSock, 1, "Name")
 
-
+def connectOnDataChannel(recived: packet.Packet):
+    connectToServer_On_DataChannel()
 
 
 
@@ -282,7 +294,7 @@ def clientSetup():
 
     allProcedures = {
     "SetUp" : (["ConAck"],[response_to_ConnectAcknowledmentPacket]),
-    "Get" : (["000Ack", "000Ack", "000Ack"],[ sendFMan, sendGet, response_to_AcknowledgePacket])
+    "Get" : (["000Ack", "ConAck"],[connectOnDataChannel, response_to_AcknowledgePacket])
     }
 
     connectToServer()

@@ -37,14 +37,30 @@ def openControlSock():
     # Accept connections
     clientControlSock, addr = controlSock.accept()
 
-    print ("Accepted connection from client: ", addr)
+    print ("Accepted connection from client on control channel: ", addr)
     print ("\n")
 
+def openDataSock():
+    global clientDataSock
+
+    dataSock.bind((get_ip(), dataPortNumber))
+
+    dataSock.listen()
+
+    print ("data sock is open")
+
+    print ("waiting for conenction on data sock")
+
+    clientDataSock, addr = dataSock.accept()
+    print ("Accepted connection from client on data channel: ", addr)
+    print ("\n")
 
 def response_to_ConnectPacket(recieved: packet.Packet):
-    print ("recieved a connection packet")
-
     clientDataPortNumber.from_bytes(recieved.data)
+
+    print ("recieved a connection packet")
+    print ("", recieved.data)
+    print ("client data port number is ", clientDataPortNumber)
 
     packet.sendConnectAcknowledgmentPacket(clientControlSock, 1, dataPortNumber)
 
@@ -79,6 +95,7 @@ def response_to_GetPacket(recieved: packet.Packet):
     runningProcedure = "Get"
 
     packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
+    openDataSock()
 
 def response_to_PutPacket(recieved: packet.Packet):
     print ("recieved a put packet")
@@ -148,10 +165,6 @@ def respondToPacket(packet: packet.Packet):
 def sendAck(reived: packet.Packet):
     packet.sendAcknowledgePacket(clientControlSock, 1, 1)
 
-allProcedures = {
-    "Setup" : (["000Ack"],[response_to_AcknowledgePacket]),
-    "Get" : (["00FMan", "000Get"],[sendAck, sendAck])
-}
 
 
 
@@ -185,12 +198,13 @@ def serverSetup():
     global expectedPacketName
     global runningProcedure
     global procedureStep
+    global allProcedures
 
     # Sets the main control port to list to
     controlPortNumber = int(sys.argv[1])
 
     # Sets the port number that data will be recieved on
-    dataPortNumber = 300
+    dataPortNumber = 1235
 
     clientDataPortNumber = 0
 
@@ -205,6 +219,12 @@ def serverSetup():
 
     runningProcedure = ""
     procedureStep = 0
+
+    allProcedures = {
+    "Setup" : (["000Ack"],[response_to_AcknowledgePacket]),
+    "Get" : ([],[])
+    }
+
 
     openControlSock()
 
