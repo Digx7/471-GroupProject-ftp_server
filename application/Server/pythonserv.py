@@ -122,7 +122,6 @@ def response_to_GetPacket(recieved: packet.Packet):
     print ("recieved a get packet")
 
     global runningProcedure
-    runningProcedure = "Get"
     global clientDataSock
     global sendingFileName
     global transferFileData
@@ -130,6 +129,9 @@ def response_to_GetPacket(recieved: packet.Packet):
     sendingFileName = recieved.data.decode()
 
     if os.path.isfile(sendingFileName):
+
+        runningProcedure = "Get"
+
         print("Found the file")
         fileObj = open(sendingFileName, "rb")
         transferFileData = fileObj.read()

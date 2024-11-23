@@ -39,9 +39,61 @@ def connectToServer():
     # Connect to the server
     controlSock.connect((serverMachineAddress, serverControlPortNumber))
     
-    allProcedures["SetUp"] = ([("ConAck", controlSock)],[response_to_ConnectAcknowledmentPacket])
-    allProcedures["Get"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
-    allProcedures["Put"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+    # allProcedures["SetUp"] = (
+    #     [("ConAck", controlSock)],
+    #     [response_to_ConnectAcknowledmentPacket])
+    # allProcedures["Get"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+    # allProcedures["Put"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+
+
+    allProcedures["SetUp"] = [
+        (
+            controlSock,
+            [("ConAck", response_to_ConnectAcknowledmentPacket, False)]
+        )
+    ]
+
+
+    allProcedures["Get"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", connectOnDataChannel, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00FMan", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00File", response_to_FilePacket, False)]
+        )
+    ]
+
+    allProcedures["Put"] = [
+        (
+            controlSock,
+            [("000Ack", connectOnDataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendFMan, False)]
+        ),
+        (
+            dataSock,
+            [("000Ack", sendFilePacket, False)]
+        ),
+        (
+            dataSock,
+            [("000Ack", closeDataChannel, False)]
+        )
+    ]
 
 
     expectPacket("ConAck")
@@ -56,27 +108,68 @@ def connectToServer_On_DataChannel():
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     dataSock.connect((serverMachineAddress, serverDataPortNumber))
 
-    allProcedures["Get"] = (
-        [("000Ack", controlSock),
-         ("ConAck", dataSock),
-        #  Comment
-         ("00FMan", dataSock),
-         ("00File",dataSock)],
-        [connectOnDataChannel, 
-         sendAck_on_dataChannel, 
-         sendAck_on_dataChannel, 
-         response_to_FilePacket])
+    # allProcedures["Get"] = (
+    #     [("000Ack", controlSock),
+    #      ("ConAck", dataSock),
+    #     #  Comment
+    #      ("00FMan", dataSock),
+    #      ("00File",dataSock)],
+    #     [connectOnDataChannel, 
+    #      sendAck_on_dataChannel, 
+    #      sendAck_on_dataChannel, 
+    #      response_to_FilePacket])
     
-    # allProcedures["Get"] = [
-    #     [
-    #         (("000Ack", controlSock), connectOnDataChannel),
-    #         (("ConAck", dataSock), sendAck_on_dataChannel),
-    #         (("00FMan", dataSock), sendAck_on_dataChannel),
-    #         (("00File", dataSock), response_to_FilePacket),
-    #     ]
-    # ]
+    # allProcedures["Put"] = (
+    #     [("000Ack", controlSock),
+    #     ("ConAck", dataSock),
+    #     ("000Ack", dataSock),
+    #     ("000Ack",dataSock)],
+    #     [connectOnDataChannel, 
+    #     sendFMan, 
+    #     sendFilePacket, 
+    #     closeDataChannel])
 
-    allProcedures["Put"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+
+    allProcedures["Get"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", connectOnDataChannel, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00FMan", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00File", response_to_FilePacket, False)]
+        )
+    ]
+
+    allProcedures["Put"] = [
+        (
+            controlSock,
+            [("000Ack", connectOnDataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendFMan, False)]
+        ),
+        (
+            dataSock,
+            [("000Ack", sendFilePacket, False)]
+        ),
+        (
+            dataSock,
+            [("000Ack", closeDataChannel, False)]
+        )
+    ]
 
     # allProcedures["Name"] = [
     #     # Step 1
@@ -291,6 +384,8 @@ def notExpectingPacket():
 
     isExpectingPacket = False
 
+def fileDoesntExistOnServer(recieved: packet.Packet):
+    print("That file does not exist on the server")
 
 
 def sendFMan(recived: packet.Packet):
@@ -379,11 +474,62 @@ def clientSetup():
     runningProcedure = ""
     procedureStep = 0
 
-    allProcedures = {
-        "SetUp" : ([("ConAck", controlSock)],[response_to_ConnectAcknowledmentPacket]),
-        "Get" : ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel]),
-        "Put" : ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
-    }
+    # allProcedures = {
+    #     "SetUp" : ([("ConAck", controlSock)],[response_to_ConnectAcknowledmentPacket]),
+    #     "Get" : ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel]),
+    #     "Put" : ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+    # }
+
+    allProcedures = {}
+
+    allProcedures["SetUp"] = [
+        (
+            controlSock,
+            [("ConAck", response_to_ConnectAcknowledmentPacket, False)]
+        )
+    ]
+
+
+    allProcedures["Get"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", connectOnDataChannel, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00FMan", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00File", response_to_FilePacket, False)]
+        )
+    ]
+
+    allProcedures["Put"] = [
+        (
+            controlSock,
+            [("000Ack", connectOnDataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendFMan, False)]
+        ),
+        (
+            dataSock,
+            [("000Ack", sendFilePacket, False)]
+        ),
+        (
+            dataSock,
+            [("000Ack", closeDataChannel, False)]
+        )
+    ]
 
     connectToServer()
 
@@ -397,13 +543,39 @@ def coreLoop():
         if(runningProcedure != ""):
             # a procedure is running
 
-            procedureExpectedReplies, procedureResponses = allProcedures[runningProcedure]
+            # procedureExpectedReplies, procedureResponses = allProcedures[runningProcedure]
+            
 
-            if procedureStep < len(procedureExpectedReplies):
-                lastPacket = packet.recvPacket(procedureExpectedReplies[procedureStep][1])
-                if(packet.isExpectedPacket(lastPacket, procedureExpectedReplies[procedureStep][0])):
-                    procedureResponses[procedureStep](lastPacket)
-                    procedureStep += 1
+            # if procedureStep < len(procedureExpectedReplies):
+            #     lastPacket = packet.recvPacket(procedureExpectedReplies[procedureStep][1])
+            #     if(packet.isExpectedPacket(lastPacket, procedureExpectedReplies[procedureStep][0])):
+            #         procedureResponses[procedureStep](lastPacket)
+            #         procedureStep += 1
+            # else:
+            #     runningProcedure = ""
+            #     procedureStep = 0
+
+            procedureSteps = allProcedures[runningProcedure]
+
+            if procedureStep < len(procedureSteps):
+                sock = procedureSteps[procedureStep][0]
+                responses = procedureSteps[procedureStep][1]
+
+                lastPacket = packet.recvPacket(sock)
+
+                for response in responses:
+                    name = response[0]
+                    action = response[1]
+                    isEarlyTerminator = response[2]
+
+                    if(packet.isExpectedPacket(lastPacket, name)):
+                        action(lastPacket)
+                        if not isEarlyTerminator:
+                            procedureStep += 1
+                        else:
+                            runningProcedure = ""
+                            procedureStep = 0
+                
             else:
                 runningProcedure = ""
                 procedureStep = 0
