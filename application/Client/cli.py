@@ -15,7 +15,8 @@
 import socket
 import os
 import sys
-import packet
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+import application.PacketLib.packet as packet
 
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

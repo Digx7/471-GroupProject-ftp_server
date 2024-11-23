@@ -10,7 +10,8 @@
 import socket
 import os
 import sys
-import packet
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+import application.PacketLib.packet as packet
 
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -135,11 +136,16 @@ def response_to_GetPacket(recieved: packet.Packet):
     allProcedures["Get"] = ([("000Con", clientDataSock),("00FMan", clientDataSock),("00File", clientDataSock)],[sendConAck_On_DataChannel,sendAck_On_DataChannel,closeDataChannel])
 
 def response_to_PutPacket(recieved: packet.Packet):
-    print ("recieved a put packet")
-
-    global runningProcedure
-    runningProcedure = "Put"
     global clientDataSock
+    global runningProcedure
+    global recievingFileName
+
+    recievingFileName = recieved.data.decode()
+
+    print ("recieved a put packet for the file: ", recievingFileName)
+
+    runningProcedure = "Put"
+    
 
     packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
     openDataSock()
