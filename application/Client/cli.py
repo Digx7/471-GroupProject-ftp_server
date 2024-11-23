@@ -81,10 +81,23 @@ def getFTPCommand(inputArgs):
 
 # Uploads a file
 def putFTPCommand(inputArgs):
+    global transferFileData
+
     if len(inputArgs) < 2:
         print("a file name is needed")
         return
     fileName = inputArgs[1]
+
+    if os.path.isfile(fileName):
+        print("Found the file")
+        fileObj = open(fileName, "rb")
+        transferFileData = fileObj.read()
+        print(transferFileData)
+    else:
+        print("That file does not exist")
+        return
+
+
     print("Uploading file: " + fileName)
 
     expectPacket("000Ack")
@@ -248,7 +261,11 @@ def sendFMan(recived: packet.Packet):
     packet.sendFileManifestPacket(dataSock, 1)
 
 def sendFilePacket(recived: packet.Packet):
-    packet.sendFilePacket(dataSock, 1)
+    # global transferFileData
+
+    print(transferFileData)
+
+    packet.sendFilePacket(dataSock, 1, transferFileData)
 
 def sendGet(recived: packet.Packet):
     packet.sendGetPacket(controlSock, 1, "Name")

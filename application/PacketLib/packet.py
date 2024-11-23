@@ -251,17 +251,18 @@ def sendFileManifestPacket(
 
 def sendFilePacket(
         sock: socket, 
-        packetNumber: int):
+        packetNumber: int,
+        data: bytes):
     print("Sending File")
 
     commandName = "00File"
-    dataSize = 0
+    dataSize = len(data)
 
     packetNumber_as_bytes = packetNumber.to_bytes(2)
     commandName_as_bytes = commandName.encode()
     dataSize_as_bytes = dataSize.to_bytes(4)
 
-    sendPacket(sock, packetNumber_as_bytes, commandName_as_bytes, dataSize_as_bytes, b'')
+    sendPacket(sock, packetNumber_as_bytes, commandName_as_bytes, dataSize_as_bytes, data)
 
 def sendFileStatusPacket(
         sock: socket, 
