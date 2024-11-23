@@ -56,9 +56,34 @@ def connectToServer_On_DataChannel():
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     dataSock.connect((serverMachineAddress, serverDataPortNumber))
 
-    allProcedures["Get"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+    allProcedures["Get"] = (
+        [("000Ack", controlSock),
+         ("ConAck", dataSock),
+        #  Comment
+         ("00FMan", dataSock),
+         ("00File",dataSock)],
+        [connectOnDataChannel, 
+         sendAck_on_dataChannel, 
+         sendAck_on_dataChannel, 
+         response_to_FilePacket])
+    
+    # allProcedures["Get"] = [
+    #     [
+    #         (("000Ack", controlSock), connectOnDataChannel),
+    #         (("ConAck", dataSock), sendAck_on_dataChannel),
+    #         (("00FMan", dataSock), sendAck_on_dataChannel),
+    #         (("00File", dataSock), response_to_FilePacket),
+    #     ]
+    # ]
+
     allProcedures["Put"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
 
+    # allProcedures["Name"] = [
+    #     # Step 1
+    #     [
+    #         (("PacName", controlSock), response_to_AcknowledgePacket), 
+    #         (("Error1", controlSock), response_to_AcknowledgePacket)
+    #     ]]
 
     expectPacket("ConAck")
     # global runningProcedure
@@ -71,13 +96,14 @@ def getFTPCommand(inputArgs):
         print("a file name is needed")
         return
     
-    fileName = inputArgs[1]
-    print("Getting file: " + fileName)
+    global recievingFileName
+    recievingFileName = inputArgs[1]
+    print("Getting file: " + recievingFileName)
 
     expectPacket("000Ack")
     global runningProcedure
     runningProcedure = "Get"
-    packet.sendGetPacket(controlSock, 1, fileName)
+    packet.sendGetPacket(controlSock, 1, recievingFileName)
 
 # Uploads a file
 def putFTPCommand(inputArgs):
@@ -216,6 +242,16 @@ def response_to_FileManifestPacket(recieved: packet.Packet):
 def response_to_FilePacket(recieved: packet.Packet):
     print ("recieved a file packet")
 
+    if os.path.isfile(recievingFileName):
+        fileObject = open(recievingFileName, "w+b")
+    else:
+        fileObject = open(recievingFileName, "xb")
+    
+    fileObject.write(recieved.data)
+    fileObject.close()
+
+    closeDataChannel(recieved)
+
 def response_to_FileStatusPacket(recieved: packet.Packet):
     print ("recieved a file status packet")
 
@@ -273,6 +309,8 @@ def sendGet(recived: packet.Packet):
 def connectOnDataChannel(recived: packet.Packet):
     connectToServer_On_DataChannel()
 
+def sendAck_on_dataChannel(recieved: packet.Packet):
+    packet.sendAcknowledgePacket(dataSock, 1, 1)
 
 
 def buildControlSock():

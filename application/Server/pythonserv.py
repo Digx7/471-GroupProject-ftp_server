@@ -121,19 +121,28 @@ def response_to_DisconnectPacket(recieved: packet.Packet):
 def response_to_GetPacket(recieved: packet.Packet):
     print ("recieved a get packet")
 
-    # TODO: check if file exists
-    # If file exists open Data sock
-
-    # dataSock.bind((get_ip(), dataPortNumber))
-
     global runningProcedure
     runningProcedure = "Get"
     global clientDataSock
+    global sendingFileName
+    global transferFileData
 
-    packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
-    openDataSock()
+    sendingFileName = recieved.data.decode()
 
-    allProcedures["Get"] = ([("000Con", clientDataSock),("00FMan", clientDataSock),("00File", clientDataSock)],[sendConAck_On_DataChannel,sendAck_On_DataChannel,closeDataChannel])
+    if os.path.isfile(sendingFileName):
+        print("Found the file")
+        fileObj = open(sendingFileName, "rb")
+        transferFileData = fileObj.read()
+        print(transferFileData)
+
+        packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
+        openDataSock()
+        allProcedures["Get"] = ([("000Con", clientDataSock),("000Ack", clientDataSock),("000Ack", clientDataSock)],[sendConAck_On_DataChannel,sendFMan,sendFile])
+
+    else:
+        print("That file does not exist")
+        packet.sendInvalidPacket(clientControlSock, 1)
+        return
 
 def response_to_PutPacket(recieved: packet.Packet):
     global clientDataSock
@@ -218,7 +227,12 @@ def respondToPacket(packet: packet.Packet):
     else:
         response_to_UnrecognizedPacket(packet)
 
+def sendFMan(recieved: packet.Packet):
+    packet.sendFileManifestPacket(clientDataSock, 1)
 
+def sendFile(recieved: packet.Packet):
+    packet.sendFilePacket(clientDataSock, 1, transferFileData)
+    closeDataChannel(recieved)
 
 def sendAck(recived: packet.Packet):
     packet.sendAcknowledgePacket(clientControlSock, 1, 1)
