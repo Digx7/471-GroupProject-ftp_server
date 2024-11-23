@@ -150,7 +150,7 @@ def response_to_PutPacket(recieved: packet.Packet):
     packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
     openDataSock()
 
-    allProcedures["Put"] = ([("000Con", clientDataSock),("00FMan", clientDataSock),("00File", clientDataSock)],[sendConAck_On_DataChannel,sendAck_On_DataChannel,closeDataChannel])
+    allProcedures["Put"] = ([("000Con", clientDataSock),("00FMan", clientDataSock),("00File", clientDataSock)],[sendConAck_On_DataChannel,sendAck_On_DataChannel,response_to_FilePacket])
 
 def response_to_DeletePacket(recieved: packet.Packet):
     print ("recieved a delete packet")
@@ -179,6 +179,17 @@ def response_to_FileManifestPacket(recieved: packet.Packet):
 
 def response_to_FilePacket(recieved: packet.Packet):
     print ("recieved a file packet")
+
+    if os.path.isfile(recievingFileName):
+        fileObject = open(recievingFileName, "w+b")
+    else:
+        fileObject = open(recievingFileName, "xb")
+    
+    fileObject.write(recieved.data)
+    fileObject.close()
+
+    closeDataChannel(recieved)
+
 
 def response_to_FileStatusPacket(recieved: packet.Packet):
     print ("recieved a file status packet")
