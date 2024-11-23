@@ -9,6 +9,11 @@ class Packet:
         self.dataSize = dataSize
         self.data = data
 
+    def __str__(self):
+        response = "" + str(self.number) + "\n" + str(self.command) + "\n" + str(self.dataSize) + "\n" + str(self.data)
+        return response
+    
+
 def recvData_as_bytes(sock, numBytes):
 
 	# TODO: turn these empty string buffers into binary buffers

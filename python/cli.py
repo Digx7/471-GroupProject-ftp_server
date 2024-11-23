@@ -54,8 +54,10 @@ def getFTPCommand(inputArgs):
     if len(inputArgs) < 2:
         print("a file name is needed")
         return
+    
     fileName = inputArgs[1]
     print("Getting file: " + fileName)
+
     expectPacket("000Ack")
     global runningProcedure
     runningProcedure = "Get"
@@ -127,18 +129,24 @@ ftpCommands = {
 }
 
 
+def response_to_generic(recieved: packet.Packet):
+    print("Recieved: ", recieved)
 
 def response_to_ConnectPacket(recieved: packet.Packet):
     print ("recieved a connection packet")
 
-    serverDataPortNumber.from_bytes(recieved.data)
+    global serverDataPortNumber
+
+    serverDataPortNumber = serverDataPortNumber.from_bytes(recieved.data)
 
     packet.sendConnectAcknowledgmentPacket(controlSock, 1, dataPortNumber)
 
 def response_to_ConnectAcknowledmentPacket(recieved: packet.Packet):
     print ("recieved a connection acknowledgement packet")
 
-    serverDataPortNumber.from_bytes(recieved.data)
+    global serverDataPortNumber
+
+    serverDataPortNumber = serverDataPortNumber.from_bytes(recieved.data)
 
     print ("Server data port number is ", serverDataPortNumber)
 
@@ -216,7 +224,7 @@ def notExpectingPacket():
 
 
 def sendFMan(recived: packet.Packet):
-    packet.sendFileManifestPacket(controlSock, 1)
+    packet.sendFileManifestPacket(dataSock, 1)
 
 def sendGet(recived: packet.Packet):
     packet.sendGetPacket(controlSock, 1, "Name")
@@ -293,8 +301,8 @@ def clientSetup():
     procedureStep = 0
 
     allProcedures = {
-    "SetUp" : (["ConAck"],[response_to_ConnectAcknowledmentPacket]),
-    "Get" : (["000Ack", "ConAck"],[connectOnDataChannel, response_to_AcknowledgePacket])
+        "SetUp" : ([("ConAck", controlSock)],[response_to_ConnectAcknowledmentPacket]),
+        "Get" : ([("000Ack", controlSock),("ConAck", dataSock)],[connectOnDataChannel, response_to_generic])
     }
 
     connectToServer()
@@ -309,11 +317,11 @@ def coreLoop():
         if(runningProcedure != ""):
             # a procedure is running
 
-            procedureExpectedPackets, procedureResponses = allProcedures[runningProcedure]
+            procedureExpectedReplies, procedureResponses = allProcedures[runningProcedure]
 
-            if procedureStep < len(procedureExpectedPackets):
-                lastPacket = packet.recvPacket(controlSock)
-                if(packet.isExpectedPacket(lastPacket, procedureExpectedPackets[procedureStep])):
+            if procedureStep < len(procedureExpectedReplies):
+                lastPacket = packet.recvPacket(procedureExpectedReplies[procedureStep][1])
+                if(packet.isExpectedPacket(lastPacket, procedureExpectedReplies[procedureStep][0])):
                     procedureResponses[procedureStep](lastPacket)
                     procedureStep += 1
             else:
