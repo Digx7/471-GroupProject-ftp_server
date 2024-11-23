@@ -21,12 +21,19 @@ def get_ip():
 
 def openControlSock():
     global clientControlSock
+    global controlSock
+    global allProcedures
     
+    controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
     # Bind the socket to the port
     controlSock.bind((get_ip(), controlPortNumber))
 
     # Start listening on the socket
     controlSock.listen()
+
+    allProcedures["Setup"] = ([("000Ack", clientControlSock)],[response_to_AcknowledgePacket])
+
 
     sockName = controlSock.getsockname()
 
@@ -42,6 +49,9 @@ def openControlSock():
 
 def openDataSock():
     global clientDataSock
+    global dataSock
+
+    dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     dataSock.bind((get_ip(), dataPortNumber))
 
@@ -115,28 +125,26 @@ def response_to_GetPacket(recieved: packet.Packet):
 
     # dataSock.bind((get_ip(), dataPortNumber))
 
-    # global runningProcedure
-    # runningProcedure = "Get"
-    
+    global runningProcedure
+    runningProcedure = "Get"
+    global clientDataSock
 
     packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
     openDataSock()
-    lastPacket = packet.recvPacket(clientDataSock)
 
-    print("LastPacket recieved: ", lastPacket)
-
-    if(lastPacket.command == "000Con"):
-        packet.sendConnectAcknowledgmentPacket(clientDataSock, 1, dataPortNumber)
-    else:
-        packet.sendAcknowledgePacket(clientDataSock, 1, 1)
+    allProcedures["Get"] = ([("000Con", clientDataSock),("00FMan", clientDataSock),("00File", clientDataSock)],[sendConAck_On_DataChannel,sendAck_On_DataChannel,closeDataChannel])
 
 def response_to_PutPacket(recieved: packet.Packet):
     print ("recieved a put packet")
 
-    packetNumber = 0
-    packetNumber.from_bytes(recieved.data)
+    global runningProcedure
+    runningProcedure = "Put"
+    global clientDataSock
 
-    packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
+    packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
+    openDataSock()
+
+    allProcedures["Put"] = ([("000Con", clientDataSock),("00FMan", clientDataSock),("00File", clientDataSock)],[sendConAck_On_DataChannel,sendAck_On_DataChannel,closeDataChannel])
 
 def response_to_DeletePacket(recieved: packet.Packet):
     print ("recieved a delete packet")
@@ -200,6 +208,15 @@ def sendAck(recived: packet.Packet):
 
 def sendAck_On_DataChannel(recived: packet.Packet):
     packet.sendAcknowledgePacket(clientDataSock, 1, 1)
+
+def closeDataChannel(recieved: packet.Packet):
+    global clientDataSock
+    global dataSock
+
+    packet.sendAcknowledgePacket(clientDataSock, 1, 1)
+    # clientDataSock.detach()
+    dataSock.close()
+    
 
 def sendConAck_On_DataChannel(recieved: packet.Packet):
     packet.sendConnectAcknowledgmentPacket(clientDataSock, 1, dataPortNumber)
@@ -265,8 +282,7 @@ def serverSetup():
     procedureStep = 0
 
     allProcedures = {
-        "Setup" : ([("000Ack", clientControlSock)],[response_to_AcknowledgePacket]),
-        "Get" : ([("000Con", clientDataSock)],[response_to_AcknowledgePacket])
+        # "Setup" : ([("000Ack", clientControlSock)],[response_to_AcknowledgePacket])
     }
 
 
@@ -290,18 +306,18 @@ def coreLoop():
 
                 name, sock = procedureExpectedReplies[procedureStep]
 
-                if is_socket_closed(sock):
-                    print("Expected packet from a closed socket")
-                    quit()
+                # if is_socket_closed(sock):
+                #     print("Expected packet from a closed socket")
+                #     quit()
+                # else:
+
+                lastPacket = packet.recvPacket(sock)
+
+                if(packet.isExpectedPacket(lastPacket, name)):
+                    procedureResponses[procedureStep](lastPacket)
+                    procedureStep += 1
                 else:
-
-                    lastPacket = packet.recvPacket(sock)
-
-                    if(packet.isExpectedPacket(lastPacket, name)):
-                        procedureResponses[procedureStep](lastPacket)
-                        procedureStep += 1
-                    else:
-                        print("recieved unexpected packet")
+                    print("recieved unexpected packet")
                     
             else:
                 runningProcedure = ""

@@ -30,10 +30,19 @@ def get_ip():
 
 def connectToServer():
     print("Connecting to the server")
+    global controlSock
+    global allProcedures
+
+    controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Connect to the server
     controlSock.connect((serverMachineAddress, serverControlPortNumber))
     
+    allProcedures["SetUp"] = ([("ConAck", controlSock)],[response_to_ConnectAcknowledmentPacket])
+    allProcedures["Get"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+    allProcedures["Put"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+
+
     expectPacket("ConAck")
     global runningProcedure
     runningProcedure = "SetUp"
@@ -41,8 +50,14 @@ def connectToServer():
 
 def connectToServer_On_DataChannel():
     print("Connecting to data channel")
+    global dataSock
 
+    dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     dataSock.connect((serverMachineAddress, serverDataPortNumber))
+
+    allProcedures["Get"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+    allProcedures["Put"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
+
 
     expectPacket("ConAck")
     # global runningProcedure
@@ -70,6 +85,7 @@ def putFTPCommand(inputArgs):
         return
     fileName = inputArgs[1]
     print("Uploading file: " + fileName)
+
     expectPacket("000Ack")
     global runningProcedure
     runningProcedure = "Put"
@@ -128,6 +144,10 @@ ftpCommands = {
     "exit" : quitFTPCommand
 }
 
+
+def closeDataChannel(recieved: packet.Packet):
+    global dataSock
+    dataSock.close()
 
 def response_to_generic(recieved: packet.Packet):
     print("Recieved: ", recieved)
@@ -226,6 +246,9 @@ def notExpectingPacket():
 def sendFMan(recived: packet.Packet):
     packet.sendFileManifestPacket(dataSock, 1)
 
+def sendFilePacket(recived: packet.Packet):
+    packet.sendFilePacket(dataSock, 1)
+
 def sendGet(recived: packet.Packet):
     packet.sendGetPacket(controlSock, 1, "Name")
 
@@ -302,7 +325,8 @@ def clientSetup():
 
     allProcedures = {
         "SetUp" : ([("ConAck", controlSock)],[response_to_ConnectAcknowledmentPacket]),
-        "Get" : ([("000Ack", controlSock),("ConAck", dataSock)],[connectOnDataChannel, response_to_generic])
+        "Get" : ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel]),
+        "Put" : ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
     }
 
     connectToServer()
