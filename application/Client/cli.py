@@ -39,12 +39,6 @@ def connectToServer():
     # Connect to the server
     controlSock.connect((serverMachineAddress, serverControlPortNumber))
     
-    # allProcedures["SetUp"] = (
-    #     [("ConAck", controlSock)],
-    #     [response_to_ConnectAcknowledmentPacket])
-    # allProcedures["Get"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
-    # allProcedures["Put"] = ([("000Ack", controlSock),("ConAck", dataSock),("000Ack", dataSock),("000Ack",dataSock)],[connectOnDataChannel, sendFMan, sendFilePacket, closeDataChannel])
-
 
     allProcedures["SetUp"] = [
         (
@@ -140,27 +134,6 @@ def connectToServer_On_DataChannel():
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     dataSock.connect((serverMachineAddress, serverDataPortNumber))
 
-    # allProcedures["Get"] = (
-    #     [("000Ack", controlSock),
-    #      ("ConAck", dataSock),
-    #     #  Comment
-    #      ("00FMan", dataSock),
-    #      ("00File",dataSock)],
-    #     [connectOnDataChannel, 
-    #      sendAck_on_dataChannel, 
-    #      sendAck_on_dataChannel, 
-    #      response_to_FilePacket])
-    
-    # allProcedures["Put"] = (
-    #     [("000Ack", controlSock),
-    #     ("ConAck", dataSock),
-    #     ("000Ack", dataSock),
-    #     ("000Ack",dataSock)],
-    #     [connectOnDataChannel, 
-    #     sendFMan, 
-    #     sendFilePacket, 
-    #     closeDataChannel])
-
 
     allProcedures["Get"] = [
         (
@@ -235,13 +208,6 @@ def connectToServer_On_DataChannel():
         )
     ]
 
-    # allProcedures["Name"] = [
-    #     # Step 1
-    #     [
-    #         (("PacName", controlSock), response_to_AcknowledgePacket), 
-    #         (("Error1", controlSock), response_to_AcknowledgePacket)
-    #     ]]
-
     expectPacket("ConAck")
     # global runningProcedure
     # runningProcedure = "SetUp"
@@ -309,7 +275,8 @@ def helpFTPCommand(inputArgs):
     print("ls")
     print("help")
     print("quit")
-    print("exit")
+    print("exit\n")
+    print("\n====================================\n")
 
 # Lists out all files on FTP server
 def lsFTPCommand(inputArgs):
@@ -344,6 +311,8 @@ ftpCommands = {
 
 
 def closeDataChannel(recieved: packet.Packet):
+    # print("RECIEVED: Acknowledgment packet")
+    
     global dataSock
     dataSock.close()
 
@@ -413,7 +382,8 @@ def response_to_FilePacket(recieved: packet.Packet):
     closeDataChannel(recieved)
 
 def response_to_ListFilePacket(recieved: packet.Packet):
-    
+    print("RECIEVED: File packet")
+
     listOfFiles = recieved.data.decode()
     print(listOfFiles)
     
@@ -459,16 +429,16 @@ def notExpectingPacket():
     isExpectingPacket = False
 
 def fileDoesntExistOnServer(recieved: packet.Packet):
+    print("RECIEVED: Invalid packet")
     print("ERROR: That file does not exist on the server")
 
 
 def sendFMan(recived: packet.Packet):
+    print("RECIEVED: Connection Acknowledgment packet")
     packet.sendFileManifestPacket(dataSock, 1)
 
 def sendFilePacket(recived: packet.Packet):
-    # global transferFileData
-
-    # print(transferFileData)
+    print("RECIEVED: Acknowledgment packet")
 
     packet.sendFilePacket(dataSock, 1, transferFileData)
 
@@ -476,9 +446,11 @@ def sendGet(recived: packet.Packet):
     packet.sendGetPacket(controlSock, 1, "Name")
 
 def connectOnDataChannel(recived: packet.Packet):
+    print("RECIEVED: Acknowledgment packet")
     connectToServer_On_DataChannel()
 
 def sendAck_on_dataChannel(recieved: packet.Packet):
+    print("RECIEVED: " + recieved.fullNameCommand() + " packet")
     packet.sendAcknowledgePacket(dataSock, 1, 1)
 
 
@@ -647,19 +619,6 @@ def coreLoop():
     while True:
 
         if(runningProcedure != ""):
-            # a procedure is running
-
-            # procedureExpectedReplies, procedureResponses = allProcedures[runningProcedure]
-            
-
-            # if procedureStep < len(procedureExpectedReplies):
-            #     lastPacket = packet.recvPacket(procedureExpectedReplies[procedureStep][1])
-            #     if(packet.isExpectedPacket(lastPacket, procedureExpectedReplies[procedureStep][0])):
-            #         procedureResponses[procedureStep](lastPacket)
-            #         procedureStep += 1
-            # else:
-            #     runningProcedure = ""
-            #     procedureStep = 0
 
             procedureSteps = allProcedures[runningProcedure]
 
@@ -681,10 +640,12 @@ def coreLoop():
                         else:
                             runningProcedure = ""
                             procedureStep = 0
+                            print("\n====================================\n")
                 
             else:
                 runningProcedure = ""
                 procedureStep = 0
+                print("\n====================================\n")
         else:
 
 

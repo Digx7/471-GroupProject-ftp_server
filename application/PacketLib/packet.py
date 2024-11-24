@@ -13,6 +13,69 @@ class Packet:
         response = "" + str(self.number) + "\n" + str(self.command) + "\n" + str(self.dataSize) + "\n" + str(self.data)
         return response
     
+    def fullNameCommand(self):
+        match self.command:
+            case "000Con":
+                return "Connection"
+            case "ConAck":
+                return "Connection Acknowledgment"
+            case "DisCon":
+                return "Disconection"
+            case "000Get":
+                return "Get"
+            case "000Put":
+                return "Put"
+            case "000Del":
+                return "Delete"
+            case "0LSReq":
+                return "List Request"
+            case "000Ack":
+                return "Acknowledgment"
+            case "InvPac":
+                return "Invalid Packet"
+            case "00FMan":
+                return "File Manifest"
+            case "00File":
+                return "File"
+            case "00FStat":
+                return "File Status"
+            case _:
+                return "Unknown"
+            
+    def fullDataInfo(self):
+        match self.command:
+            case "000Con":
+
+                portNumber = 0
+                portNumber.from_bytes(self.data)
+
+                return "Connection"
+            case "ConAck":
+                return "Connection Acknowledgment"
+            case "DisCon":
+                return "Disconection"
+            case "000Get":
+                return "Get"
+            case "000Put":
+                return "Put"
+            case "000Del":
+                return "Delete"
+            case "0LSReq":
+                return "List Request"
+            case "000Ack":
+                return "Acknowledgment"
+            case "InvPac":
+                return "Invalid Packet"
+            case "00FMan":
+                return "File Manifest"
+            case "00File":
+                return "File"
+            case "00FStat":
+                return "File Status"
+            case _:
+                return "Unknown"
+
+    
 
 def recvData_as_bytes(sock, numBytes):
 
@@ -94,7 +157,7 @@ def sendConnectPacket(
     commandName = "000Con"
 
     data_as_bytes = dataPortNumber.to_bytes(4)
-    print("",data_as_bytes)
+    # print("",data_as_bytes)
 
     dataSize = len(data_as_bytes)
 

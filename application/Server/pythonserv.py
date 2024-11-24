@@ -95,7 +95,7 @@ def response_to_ConnectPacket(recieved: packet.Packet):
     
     clientDataPortNumber = clientDataPortNumber.from_bytes(recieved.data)
 
-    print ("RECIEVED: connection packet | client data port = ", clientDataPortNumber)
+    print ("RECIEVED: Connection packet | client data port = ", clientDataPortNumber)
 
     packet.sendConnectAcknowledgmentPacket(clientControlSock, 1, dataPortNumber)
 
@@ -137,7 +137,7 @@ def response_to_GetPacket(recieved: packet.Packet):
         print("ACTION: that file exists on the server")
         fileObj = open(sendingFileName, "rb")
         transferFileData = fileObj.read()
-        print(transferFileData)
+        # print(transferFileData)
 
         packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
         openDataSock()
@@ -199,7 +199,7 @@ def response_to_ListRequestPacket(recieved: packet.Packet):
     # transferFileData = fileObj.read()
     # print(transferFileData)
 
-    transferFileData_as_str = ""
+    transferFileData_as_str = "\nFiles on the Server:"
 
     listdir = os.listdir()
 
@@ -222,6 +222,7 @@ def response_to_ListRequestPacket(recieved: packet.Packet):
 
 def response_to_AcknowledgePacket(recieved: packet.Packet):
     print ("RECIEVED: Acknowledgment Packet")
+    print("\n====================================\n")
 
 def response_to_InvalidPacket(recieved: packet.Packet):
     print ("RECIEVED: Invalid Packet")
@@ -241,6 +242,8 @@ def response_to_FilePacket(recieved: packet.Packet):
     
     fileObject.write(recieved.data)
     fileObject.close()
+    
+    packet.sendAcknowledgePacket(clientDataSock, 1, 1)
 
     closeDataChannel(recieved)
 
@@ -272,11 +275,11 @@ def respondToPacket(packet: packet.Packet):
         response_to_UnrecognizedPacket(packet)
 
 def sendFMan(recieved: packet.Packet):
-    print("SENDING: File Manifest Packet")
+    print("RECIEVED: Acknowledgment Packet")
     packet.sendFileManifestPacket(clientDataSock, 1)
 
 def sendFile(recieved: packet.Packet):
-    print("SENDING: File Packet")
+    print("RECIEVED: Acknowledgment Packet")
     packet.sendFilePacket(clientDataSock, 1, transferFileData)
     closeDataChannel(recieved)
 
@@ -285,7 +288,7 @@ def sendAck(recived: packet.Packet):
     packet.sendAcknowledgePacket(clientControlSock, 1, 1)
 
 def sendAck_On_DataChannel(recived: packet.Packet):
-    print("SENDING: Acknowledgment Packet")
+    print("RECIEVED: FileManifest Packet")
     packet.sendAcknowledgePacket(clientDataSock, 1, 1)
 
 def closeDataChannel(recieved: packet.Packet):
@@ -293,16 +296,14 @@ def closeDataChannel(recieved: packet.Packet):
     global clientDataSock
     global dataSock
 
-    packet.sendAcknowledgePacket(clientDataSock, 1, 1)
+    # packet.sendAcknowledgePacket(clientDataSock, 1, 1)
     # clientDataSock.detach()
     dataSock.close()
     
-
 def sendConAck_On_DataChannel(recieved: packet.Packet):
-    print("SENDING: Connection Acknowledgment Packet")
+    print("RECIEVED: Connection Packet | client data port number = ", clientDataPortNumber)
     packet.sendConnectAcknowledgmentPacket(clientDataSock, 1, dataPortNumber)
     pass
-
 
 def deleteFile(fileName):
     if os.path.isfile(fileName):
@@ -323,7 +324,6 @@ def validateCommandLineArgs():
         print("To see this message again just type")
         print("python pythonserv.py help")
         quit()
-
 
 def serverSetup():
     validateCommandLineArgs()
@@ -373,7 +373,6 @@ def serverSetup():
 
 
     openControlSock()
-
     
 def coreLoop():
     global runningProcedure
@@ -392,12 +391,9 @@ def coreLoop():
 
                 name, sock = procedureExpectedReplies[procedureStep]
 
-                # if is_socket_closed(sock):
-                #     print("Expected packet from a closed socket")
-                #     quit()
-                # else:
-
                 lastPacket = packet.recvPacket(sock)
+
+                # print("RECIEVED: " + lastPacket.fullNameCommand() + " packet")
 
                 if(packet.isExpectedPacket(lastPacket, name)):
                     procedureResponses[procedureStep](lastPacket)
@@ -408,6 +404,7 @@ def coreLoop():
             else:
                 runningProcedure = ""
                 procedureStep = 0
+                print("\n====================================\n")
         else:
             # No procedures are running listen for new procedures
 
