@@ -30,7 +30,7 @@ def get_ip():
 # All the ftp commands availble once the connection is set
 
 def connectToServer():
-    print("Connecting to the server")
+    print("ACTION: Connecting to the server control channel")
     global controlSock
     global allProcedures
 
@@ -134,7 +134,7 @@ def connectToServer():
     packet.sendConnectPacket(controlSock, 1, dataPortNumber)
 
 def connectToServer_On_DataChannel():
-    print("Connecting to data channel")
+    print("ACTION: Connecting to server data channel")
     global dataSock
 
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -250,12 +250,12 @@ def connectToServer_On_DataChannel():
 # Downloads a file
 def getFTPCommand(inputArgs):
     if len(inputArgs) < 2:
-        print("a file name is needed")
+        print("ERROR: A file name is needed")
         return
     
     global recievingFileName
     recievingFileName = inputArgs[1]
-    print("Getting file: " + recievingFileName)
+    # print("Getting file: " + recievingFileName)
 
     expectPacket("000Ack")
     global runningProcedure
@@ -267,21 +267,21 @@ def putFTPCommand(inputArgs):
     global transferFileData
 
     if len(inputArgs) < 2:
-        print("a file name is needed")
+        print("ERROR: A file name is needed")
         return
     fileName = inputArgs[1]
 
     if os.path.isfile(fileName):
-        print("Found the file")
+        print("ACTION: The file exists")
         fileObj = open(fileName, "rb")
         transferFileData = fileObj.read()
-        print(transferFileData)
+        # print(transferFileData)
     else:
-        print("That file does not exist")
+        print("ERROR: That file does not exist")
         return
 
 
-    print("Uploading file: " + fileName)
+    # print("Uploading file: " + fileName)
 
     expectPacket("000Ack")
     global runningProcedure
@@ -291,10 +291,10 @@ def putFTPCommand(inputArgs):
 # Deletes a file
 def deleteFTPCommand(inputArgs):
     if len(inputArgs) < 2:
-        print("a file name is needed")
+        print("ERROR: A file name is needed")
         return
     fileName = inputArgs[1]
-    print("Deleting file: " + fileName)
+    # print("Deleting file: " + fileName)
     expectPacket("000Ack")
     global runningProcedure
     runningProcedure = "Delete"
@@ -302,7 +302,7 @@ def deleteFTPCommand(inputArgs):
 
 # Lists out all valid commands
 def helpFTPCommand(inputArgs):
-    print("Valid commands:")
+    print("\nValid commands:")
     print("get <FILENAME>")
     print("put <FILENAME>")
     print("delete <FILENAME>")
@@ -313,7 +313,7 @@ def helpFTPCommand(inputArgs):
 
 # Lists out all files on FTP server
 def lsFTPCommand(inputArgs):
-    print("Listing file names")
+    # print("Listing file names")
     expectPacket("000Ack")
     global runningProcedure
     runningProcedure = "List"
@@ -321,14 +321,15 @@ def lsFTPCommand(inputArgs):
 
 # Quits execution
 def quitFTPCommand(inputArgs):
-    print("Goodbye!")
     packet.sendDisconnectPacket(controlSock, 1)
+    print("ACTION: Shutting Down")
+    print("Goodbye!")
     quit()
 
 # Runs if the command is not recognized
 def errorFTPCommand(inputArgs):
-    print("Invalid command")
-    print("Use the help command to see all valid commands")
+    print("ERROR: Invalid command")
+    print("    Use the help command to see all valid commands")
 
 # Dictionary of all ftp commands
 ftpCommands = {
@@ -347,61 +348,63 @@ def closeDataChannel(recieved: packet.Packet):
     dataSock.close()
 
 def response_to_generic(recieved: packet.Packet):
-    print("Recieved: ", recieved)
+    print("RECIEVED: Generic packet = ", recieved.command)
 
 def response_to_ConnectPacket(recieved: packet.Packet):
-    print ("recieved a connection packet")
 
     global serverDataPortNumber
 
     serverDataPortNumber = serverDataPortNumber.from_bytes(recieved.data)
+
+    print ("RECIEVED: Connection packet | server data port number = ", serverDataPortNumber)
 
     packet.sendConnectAcknowledgmentPacket(controlSock, 1, dataPortNumber)
 
 def response_to_ConnectAcknowledmentPacket(recieved: packet.Packet):
-    print ("recieved a connection acknowledgement packet")
 
     global serverDataPortNumber
 
     serverDataPortNumber = serverDataPortNumber.from_bytes(recieved.data)
 
-    print ("Server data port number is ", serverDataPortNumber)
+    print ("RECIEVED: Connection Acknowledgment packet | server data port number = ", serverDataPortNumber)
 
     notExpectingPacket()
 
     packet.sendAcknowledgePacket(controlSock, 1, recieved.number)
 
 def response_to_DisconnectPacket(recieved: packet.Packet):
-    print ("closing")
+    print ("RECIEVED: Disconnection packet")
 
 def response_to_GetPacket(recieved: packet.Packet):
-    print ("recieved a get packet")
+    print ("RECIEVED: Get packet")
 
 def response_to_PutPacket(recieved: packet.Packet):
-    print ("recieved a put packet")
+    print ("RECIEVED: Put packet")
 
 def response_to_DeletePacket(recieved: packet.Packet):
-    print ("recieved a delete packet")
+    print ("RECIEVED: Delete packet")
 
 def response_to_ListRequestPacket(recieved: packet.Packet):
-    print ("recieved a list request packet")
+    print ("RECIEVED: List Request packet")
 
 def response_to_AcknowledgePacket(recieved: packet.Packet):
-    print ("recieved a acknowledge packet")
+    print ("RECIEVED: Acknowledgement packet")
     notExpectingPacket()
 
 def response_to_InvalidPacket(recieved: packet.Packet):
-    print ("recieved a invalid packet")
+    print ("RECIEVED: Invalid packet")
 
 def response_to_FileManifestPacket(recieved: packet.Packet):
-    print ("recieved a file manifest packet")
+    print ("RECIEVED: File Manifest packet")
 
 def response_to_FilePacket(recieved: packet.Packet):
-    print ("recieved a file packet")
+    print ("RECIEVED: File packet")
 
     if os.path.isfile(recievingFileName):
+        print ("ACTION: overwriting existing file: ", recievingFileName)
         fileObject = open(recievingFileName, "w+b")
     else:
+        print ("ACTION: writing new file: ", recievingFileName)
         fileObject = open(recievingFileName, "xb")
     
     fileObject.write(recieved.data)
@@ -417,10 +420,10 @@ def response_to_ListFilePacket(recieved: packet.Packet):
     closeDataChannel(recieved)
 
 def response_to_FileStatusPacket(recieved: packet.Packet):
-    print ("recieved a file status packet")
+    print ("RECIEVED: File status packet")
 
 def response_to_UnrecognizedPacket(recieved: packet.Packet):
-     print ("error: recieved unrecognized packet")
+    print ("ERROR: RECIEVED: Unrecognized packet")
 
 responses_to_packets = {
      "000Con" : response_to_ConnectPacket,
@@ -456,7 +459,7 @@ def notExpectingPacket():
     isExpectingPacket = False
 
 def fileDoesntExistOnServer(recieved: packet.Packet):
-    print("That file does not exist on the server")
+    print("ERROR: That file does not exist on the server")
 
 
 def sendFMan(recived: packet.Packet):
@@ -465,7 +468,7 @@ def sendFMan(recived: packet.Packet):
 def sendFilePacket(recived: packet.Packet):
     # global transferFileData
 
-    print(transferFileData)
+    # print(transferFileData)
 
     packet.sendFilePacket(dataSock, 1, transferFileData)
 

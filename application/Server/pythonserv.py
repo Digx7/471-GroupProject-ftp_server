@@ -25,6 +25,8 @@ def openControlSock():
     global controlSock
     global allProcedures
     
+    print("ACTION: Opening Control Channel")
+
     controlSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Bind the socket to the port
@@ -38,19 +40,21 @@ def openControlSock():
 
     sockName = controlSock.getsockname()
 
-    print ("Waiting for connections on control channel...")
+    print ("ACTION: Waiting for connections on control channel...")
     print (sockName)
 
 
     # Accept connections
     clientControlSock, addr = controlSock.accept()
 
-    print ("Accepted connection from client on control channel: ", addr)
+    print ("ACTION: Accepted connection from client on control channel: ", addr)
     print ("\n")
 
 def openDataSock():
     global clientDataSock
     global dataSock
+
+    print("ACTION: Opening Data Channel")
 
     dataSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -60,12 +64,12 @@ def openDataSock():
 
     sockName = dataSock.getsockname()
 
-    print ("Waiting for connections on data channel...")
+    print ("ACTION: Waiting for connections on data channel...")
     print (sockName)
 
     clientDataSock, addr = dataSock.accept()
 
-    print ("Accepted connection from client on data channel: ", addr)
+    print ("ACTION: Accepted connection from client on data channel: ", addr)
     print ("\n")
 
     # lastPacket = packet.recvPacket(clientDataSock)
@@ -91,9 +95,7 @@ def response_to_ConnectPacket(recieved: packet.Packet):
     
     clientDataPortNumber = clientDataPortNumber.from_bytes(recieved.data)
 
-    print ("recieved a connection packet")
-    print ("", recieved.data)
-    print ("client data port number is ", clientDataPortNumber)
+    print ("RECIEVED: connection packet | client data port = ", clientDataPortNumber)
 
     packet.sendConnectAcknowledgmentPacket(clientControlSock, 1, dataPortNumber)
 
@@ -104,14 +106,13 @@ def response_to_ConnectAcknowledmentPacket(recieved: packet.Packet):
     
     clientDataPortNumber = clientDataPortNumber.from_bytes(recieved.data)
 
-    print ("recieved a connection acknowledgement packet")
-    print ("", recieved.data)
-    print ("client data port number is ", clientDataPortNumber)
+    print ("RECIEVED: connection acknowledgment packet | client data port number = ", clientDataPortNumber)
 
     packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
 
 def response_to_DisconnectPacket(recieved: packet.Packet):
-    print ("closing")
+    print ("RECIEVED: disconnect packet")
+    print ("ACTION: closing server")
 
     # Close our side
     clientControlSock.close()
@@ -119,7 +120,6 @@ def response_to_DisconnectPacket(recieved: packet.Packet):
     quit()
 
 def response_to_GetPacket(recieved: packet.Packet):
-    print ("recieved a get packet")
 
     global runningProcedure
     global clientDataSock
@@ -128,11 +128,13 @@ def response_to_GetPacket(recieved: packet.Packet):
 
     sendingFileName = recieved.data.decode()
 
+    print ("RECIEVED: Get Packet | file to get = ", sendingFileName)
+
     if os.path.isfile(sendingFileName):
 
         runningProcedure = "Get"
 
-        print("Found the file")
+        print("ACTION: that file exists on the server")
         fileObj = open(sendingFileName, "rb")
         transferFileData = fileObj.read()
         print(transferFileData)
@@ -142,7 +144,7 @@ def response_to_GetPacket(recieved: packet.Packet):
         allProcedures["Get"] = ([("000Con", clientDataSock),("000Ack", clientDataSock),("000Ack", clientDataSock)],[sendConAck_On_DataChannel,sendFMan,sendFile])
 
     else:
-        print("That file does not exist")
+        print("ACTION: that file does not exist on the server")
         packet.sendInvalidPacket(clientControlSock, 1)
         return
 
@@ -153,7 +155,7 @@ def response_to_PutPacket(recieved: packet.Packet):
 
     recievingFileName = recieved.data.decode()
 
-    print ("recieved a put packet for the file: ", recievingFileName)
+    print ("RECIEVED: Put Packet | file to put = ", recievingFileName)
 
     runningProcedure = "Put"
     
@@ -169,15 +171,16 @@ def response_to_DeletePacket(recieved: packet.Packet):
     
     recievingFileName = recieved.data.decode()
 
-    print ("recieved a delete packet for the file: ", recievingFileName)
+    print ("RECIEVED: Delete Packet | file to delete = ", sendingFileName)
 
     
 
     if os.path.isfile(recievingFileName):
+        print("ACTION: that file exists on the server")
         deleteFile(recievingFileName)
         packet.sendAcknowledgePacket(clientControlSock, 1, 1)
     else:
-        print("That file does not exist")
+        print("ACTION: that file does not exists on the server")
         packet.sendInvalidPacket(clientControlSock, 1)
 
     # packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
@@ -188,7 +191,7 @@ def response_to_ListRequestPacket(recieved: packet.Packet):
     global sendingFileName
     global transferFileData
     
-    print ("recieved a list request packet")
+    print ("RECIEVED: List Packet")
 
     runningProcedure = "List"
 
@@ -217,22 +220,23 @@ def response_to_ListRequestPacket(recieved: packet.Packet):
         sendFMan,
         sendFile])
 
-
 def response_to_AcknowledgePacket(recieved: packet.Packet):
-    print ("recieved a acknowledge packet")
+    print ("RECIEVED: Acknowledgment Packet")
 
 def response_to_InvalidPacket(recieved: packet.Packet):
-    print ("recieved a invalid packet")
+    print ("RECIEVED: Invalid Packet")
 
 def response_to_FileManifestPacket(recieved: packet.Packet):
-    print ("recieved a file manifest packet")
+    print ("RECIEVED: File Manifest Packet")
 
 def response_to_FilePacket(recieved: packet.Packet):
-    print ("recieved a file packet")
+    print ("RECIEVED: File Packet")
 
     if os.path.isfile(recievingFileName):
+        print ("ACTION: overwriting existing file")
         fileObject = open(recievingFileName, "w+b")
     else:
+        print ("ACTION: making new file")
         fileObject = open(recievingFileName, "xb")
     
     fileObject.write(recieved.data)
@@ -240,12 +244,11 @@ def response_to_FilePacket(recieved: packet.Packet):
 
     closeDataChannel(recieved)
 
-
 def response_to_FileStatusPacket(recieved: packet.Packet):
-    print ("recieved a file status packet")
+    print ("RECIEVED: file status packet")
 
 def response_to_UnrecognizedPacket(recieved: packet.Packet):
-     print ("error: recieved unrecognized packet")
+     print ("ERROR: RECIEVED: unrecognized packet")
 
 responses_to_packets = {
      "000Con" : response_to_ConnectPacket,
@@ -269,19 +272,24 @@ def respondToPacket(packet: packet.Packet):
         response_to_UnrecognizedPacket(packet)
 
 def sendFMan(recieved: packet.Packet):
+    print("SENDING: File Manifest Packet")
     packet.sendFileManifestPacket(clientDataSock, 1)
 
 def sendFile(recieved: packet.Packet):
+    print("SENDING: File Packet")
     packet.sendFilePacket(clientDataSock, 1, transferFileData)
     closeDataChannel(recieved)
 
 def sendAck(recived: packet.Packet):
+    print("SENDING: Acknowledgment Packet")
     packet.sendAcknowledgePacket(clientControlSock, 1, 1)
 
 def sendAck_On_DataChannel(recived: packet.Packet):
+    print("SENDING: Acknowledgment Packet")
     packet.sendAcknowledgePacket(clientDataSock, 1, 1)
 
 def closeDataChannel(recieved: packet.Packet):
+    print("ACTION: Closing down data channel")
     global clientDataSock
     global dataSock
 
@@ -291,12 +299,14 @@ def closeDataChannel(recieved: packet.Packet):
     
 
 def sendConAck_On_DataChannel(recieved: packet.Packet):
+    print("SENDING: Connection Acknowledgment Packet")
     packet.sendConnectAcknowledgmentPacket(clientDataSock, 1, dataPortNumber)
     pass
 
 
 def deleteFile(fileName):
     if os.path.isfile(fileName):
+        print ("ACTION: Deleting ", fileName)
         os.remove(fileName)
 
 def validateCommandLineArgs():

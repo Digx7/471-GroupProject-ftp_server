@@ -45,27 +45,27 @@ def recvPacket(sock):
 
     packetNumberBuffer = recvData_as_bytes(sock, 2)
     packetNumber = packetNumber.from_bytes(packetNumberBuffer)
-    print ("Packet Number: ", packetNumber)
+    # print ("Packet Number: ", packetNumber)
 
     packetCommandNameBuffer = b""
     commandName = ""
 
     packetCommandNameBuffer = recvData_as_bytes(sock, 6)
     commandName = packetCommandNameBuffer.decode()
-    print ("Packet Command: " + commandName)
+    # print ("Packet Command: " + commandName)
 
     packetDataSizeBuffer = b""
     dataSize = 0
 
     packetDataSizeBuffer = recvData_as_bytes(sock, 4)
     dataSize = dataSize.from_bytes(packetDataSizeBuffer)
-    print ("Packet Data Size: ", dataSize)
+    # print ("Packet Data Size: ", dataSize)
 
     dataBuffer = b""
 
     if dataSize > 0:
         dataBuffer = recvData_as_bytes(sock, dataSize)
-        print ("Data: ", dataBuffer)
+        # print ("Data: ", dataBuffer)
 
     return Packet(packetNumber, commandName, dataSize, dataBuffer)
 
@@ -89,7 +89,7 @@ def sendConnectPacket(
         sock: socket, 
         packetNumber: int,
         dataPortNumber: int):
-    print("Sending Con with data port number ", dataPortNumber)
+    print("SENDING: Connection packet | data port number = ", dataPortNumber)
 
     commandName = "000Con"
 
@@ -108,7 +108,7 @@ def sendConnectAcknowledgmentPacket(
         sock: socket, 
         packetNumber: int,
         dataPortNumber: int):
-    print("Sending ConAck with data port number ", dataPortNumber)
+    print("SENDING: Connection Acknowledgement packet | data port number ", dataPortNumber)
 
     commandName = "ConAck"
 
@@ -125,7 +125,7 @@ def sendConnectAcknowledgmentPacket(
 def sendDisconnectPacket(
         sock: socket, 
         packetNumber: int):
-    print("Sending DisCon")
+    print("SENDING: Disconnection packet")
 
     commandName = "DisCon"
     dataSize = 0
@@ -140,7 +140,7 @@ def sendGetPacket(
         sock: socket, 
         packetNumber: int,
         fileName: str):
-    print("Sending Get")
+    print("SENDING: Get packet | file to get = ", fileName)
 
     data_as_bytes = fileName.encode()
 
@@ -158,7 +158,7 @@ def sendPutPacket(
         sock: socket, 
         packetNumber: int,
         fileName: str):
-    print("Sending Put")
+    print("SENDING: Put packet | file to put = ", fileName)
 
     data_as_bytes = fileName.encode()
 
@@ -175,7 +175,7 @@ def sendDeletePacket(
         sock: socket, 
         packetNumber: int,
         fileName: str):
-    print("Sending Del")
+    print("SENDING: Delete packet | file to delete = ", fileName)
 
     data_as_bytes = fileName.encode()
 
@@ -191,7 +191,7 @@ def sendDeletePacket(
 def sendListRequestPacket(
         sock: socket, 
         packetNumber: int):
-    print("Sending LsReq")
+    print("SENDING: List Request packet")
 
     commandName = "0LSReq"
     dataSize = 0
@@ -206,7 +206,7 @@ def sendAcknowledgePacket(
         sock: socket, 
         packetNumber: int,
         packetToAcknowledge: int):
-    print("Sending Ack")
+    print("SENDING: Acknowledgment packet")
 
     commandName = "000Ack"
 
@@ -224,7 +224,7 @@ def sendAcknowledgePacket(
 def sendInvalidPacket(
         sock: socket, 
         packetNumber: int):
-    print("Sending InvPac")
+    print("SENDING: Invalid Packet")
 
     commandName = "InvPac"
     dataSize = 0
@@ -238,7 +238,7 @@ def sendInvalidPacket(
 def sendFileManifestPacket(
         sock: socket, 
         packetNumber: int):
-    print("Sending FMan")
+    print("SENDING: File Manifest Packet")
 
     commandName = "00FMan"
     dataSize = 0
@@ -253,7 +253,7 @@ def sendFilePacket(
         sock: socket, 
         packetNumber: int,
         data: bytes):
-    print("Sending File")
+    print("SENDING: File packet")
 
     commandName = "00File"
     dataSize = len(data)
@@ -267,7 +267,7 @@ def sendFilePacket(
 def sendFileStatusPacket(
         sock: socket, 
         packetNumber: int):
-    print("Sending FStat")
+    print("SENDING: File Status packet")
 
     commandName = "0FStat"
     dataSize = 0
