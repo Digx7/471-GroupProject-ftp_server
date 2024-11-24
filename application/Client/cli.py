@@ -95,6 +95,16 @@ def connectToServer():
         )
     ]
 
+    allProcedures["Delete"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", response_to_AcknowledgePacket, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
+        )
+    ]
+
 
     expectPacket("ConAck")
     global runningProcedure
@@ -168,6 +178,16 @@ def connectToServer_On_DataChannel():
         (
             dataSock,
             [("000Ack", closeDataChannel, False)]
+        )
+    ]
+
+    allProcedures["Delete"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", response_to_AcknowledgePacket, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
         )
     ]
 
@@ -528,6 +548,16 @@ def clientSetup():
         (
             dataSock,
             [("000Ack", closeDataChannel, False)]
+        )
+    ]
+
+    allProcedures["Delete"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", response_to_AcknowledgePacket, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
         )
     ]
 

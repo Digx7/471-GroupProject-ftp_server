@@ -164,12 +164,23 @@ def response_to_PutPacket(recieved: packet.Packet):
     allProcedures["Put"] = ([("000Con", clientDataSock),("00FMan", clientDataSock),("00File", clientDataSock)],[sendConAck_On_DataChannel,sendAck_On_DataChannel,response_to_FilePacket])
 
 def response_to_DeletePacket(recieved: packet.Packet):
-    print ("recieved a delete packet")
+    global runningProcedure
+    global recievingFileName
+    
+    recievingFileName = recieved.data.decode()
 
-    packetNumber = 0
-    packetNumber.from_bytes(recieved.data)
+    print ("recieved a delete packet for the file: ", recievingFileName)
 
-    packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
+    
+
+    if os.path.isfile(recievingFileName):
+        deleteFile(recievingFileName)
+        packet.sendAcknowledgePacket(clientControlSock, 1, 1)
+    else:
+        print("That file does not exist")
+        packet.sendInvalidPacket(clientControlSock, 1)
+
+    # packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
 def response_to_ListRequestPacket(recieved: packet.Packet):
     print ("recieved a list request packet")
@@ -255,6 +266,10 @@ def sendConAck_On_DataChannel(recieved: packet.Packet):
     packet.sendConnectAcknowledgmentPacket(clientDataSock, 1, dataPortNumber)
     pass
 
+
+def deleteFile(fileName):
+    if os.path.isfile(fileName):
+        os.remove(fileName)
 
 def validateCommandLineArgs():
     # Check number of command line args
