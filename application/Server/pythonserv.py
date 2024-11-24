@@ -183,12 +183,40 @@ def response_to_DeletePacket(recieved: packet.Packet):
     # packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
 
 def response_to_ListRequestPacket(recieved: packet.Packet):
+    global runningProcedure
+    global clientDataSock
+    global sendingFileName
+    global transferFileData
+    
     print ("recieved a list request packet")
 
-    packetNumber = 0
-    packetNumber.from_bytes(recieved.data)
+    runningProcedure = "List"
 
-    packet.sendAcknowledgePacket(clientControlSock, 1, packetNumber)
+    # fileObj = open(sendingFileName, "rb")
+    # transferFileData = fileObj.read()
+    # print(transferFileData)
+
+    transferFileData_as_str = ""
+
+    listdir = os.listdir()
+
+    for item in listdir:
+        transferFileData_as_str = transferFileData_as_str + "\n" + item
+
+    transferFileData = transferFileData_as_str.encode()
+
+    packet.sendAcknowledgePacket(clientControlSock, 1, recieved.number)
+    openDataSock()
+    allProcedures["List"] = (
+        [
+        ("000Con", clientDataSock),
+        ("000Ack", clientDataSock),
+        ("000Ack", clientDataSock)],
+        [
+        sendConAck_On_DataChannel,
+        sendFMan,
+        sendFile])
+
 
 def response_to_AcknowledgePacket(recieved: packet.Packet):
     print ("recieved a acknowledge packet")

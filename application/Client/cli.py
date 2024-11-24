@@ -105,6 +105,28 @@ def connectToServer():
         )
     ]
 
+    allProcedures["List"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", connectOnDataChannel, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00FMan", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00File", response_to_ListFilePacket, False)]
+        )
+    ]
+
 
     expectPacket("ConAck")
     global runningProcedure
@@ -188,6 +210,28 @@ def connectToServer_On_DataChannel():
             ("000Ack", response_to_AcknowledgePacket, False),
             ("InvPac", fileDoesntExistOnServer, True)
             ]
+        )
+    ]
+
+    allProcedures["List"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", connectOnDataChannel, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00FMan", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00File", response_to_ListFilePacket, False)]
         )
     ]
 
@@ -363,6 +407,13 @@ def response_to_FilePacket(recieved: packet.Packet):
     fileObject.write(recieved.data)
     fileObject.close()
 
+    closeDataChannel(recieved)
+
+def response_to_ListFilePacket(recieved: packet.Packet):
+    
+    listOfFiles = recieved.data.decode()
+    print(listOfFiles)
+    
     closeDataChannel(recieved)
 
 def response_to_FileStatusPacket(recieved: packet.Packet):
@@ -558,6 +609,28 @@ def clientSetup():
             ("000Ack", response_to_AcknowledgePacket, False),
             ("InvPac", fileDoesntExistOnServer, True)
             ]
+        )
+    ]
+
+    allProcedures["List"] = [
+        (
+            controlSock,
+            [
+            ("000Ack", connectOnDataChannel, False),
+            ("InvPac", fileDoesntExistOnServer, True)
+            ]
+        ),
+        (
+            dataSock,
+            [("ConAck", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00FMan", sendAck_on_dataChannel, False)]
+        ),
+        (
+            dataSock,
+            [("00File", response_to_ListFilePacket, False)]
         )
     ]
 
