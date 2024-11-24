@@ -2,6 +2,9 @@ import socket
 import os
 import sys
 
+# This is a generic packet module used to store the Packet class (a nice way of bunling the application element of the packets)
+# It also contains several usful fuctions used by both the client and server for sending and recieving certian packet types
+
 class Packet:
     def __init__(self, number, command, dataSize, data):
         self.number = number
@@ -76,6 +79,7 @@ class Packet:
                 return "Unknown"
 
     
+# RECIEVING packets ========================================================================
 
 def recvData_as_bytes(sock, numBytes):
 
@@ -137,6 +141,16 @@ def recvPacket(sock):
     # else:
     #      respone_to_UnrecognizedPacket(dataBuffer)
 
+def isExpectedPacket(
+        recivedPack: Packet,
+        expectedPackName: str):
+    if(recivedPack.command == expectedPackName):
+        return True
+    else:
+        return False
+
+
+# SENDING packets ===========================================================================
 
 def sendPacket(
         sock: socket, 
@@ -341,10 +355,3 @@ def sendFileStatusPacket(
 
     sendPacket(sock, packetNumber_as_bytes, commandName_as_bytes, dataSize_as_bytes, b'')
 
-def isExpectedPacket(
-        recivedPack: Packet,
-        expectedPackName: str):
-    if(recivedPack.command == expectedPackName):
-        return True
-    else:
-        return False
