@@ -5,8 +5,9 @@ Last Edited 11/24/2024
 
 ## Group Members
 - Everette Webber edwebber@csu.fullerton.edu
-- ??? ???@csu.fullerton.edu
-- ??? ???@csu.fullerton.edu
+- Michael Martinez ???@csu.fullerton.edu
+- Gregory Dorfman ???@csu.fullerton.edu
+- Sepehr Nourbakhsh ???@csu.fullerton.edu
 
 ## Program Language Used
 Python
