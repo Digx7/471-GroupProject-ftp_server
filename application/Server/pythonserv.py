@@ -13,6 +13,9 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 import application.PacketLib.packet as packet
 
+
+# CHANNEl Control ========================================
+
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
@@ -89,6 +92,9 @@ def is_socket_closed(sock: socket.socket) -> bool:
         print("", e)
         return False
     return False
+
+
+# RESPONSES =============================================
 
 def response_to_ConnectPacket(recieved: packet.Packet):
     global clientDataPortNumber
@@ -274,6 +280,9 @@ def respondToPacket(packet: packet.Packet):
     else:
         response_to_UnrecognizedPacket(packet)
 
+
+# SEND PACKETS/ ACTIONS ===========================================================
+
 def sendFMan(recieved: packet.Packet):
     print("RECIEVED: Acknowledgment Packet")
     packet.sendFileManifestPacket(clientDataSock, 1)
@@ -291,6 +300,11 @@ def sendAck_On_DataChannel(recived: packet.Packet):
     print("RECIEVED: FileManifest Packet")
     packet.sendAcknowledgePacket(clientDataSock, 1, 1)
 
+def sendConAck_On_DataChannel(recieved: packet.Packet):
+    print("RECIEVED: Connection Packet | client data port number = ", clientDataPortNumber)
+    packet.sendConnectAcknowledgmentPacket(clientDataSock, 1, dataPortNumber)
+    pass
+
 def closeDataChannel(recieved: packet.Packet):
     print("ACTION: Closing down data channel")
     global clientDataSock
@@ -299,16 +313,14 @@ def closeDataChannel(recieved: packet.Packet):
     # packet.sendAcknowledgePacket(clientDataSock, 1, 1)
     # clientDataSock.detach()
     dataSock.close()
-    
-def sendConAck_On_DataChannel(recieved: packet.Packet):
-    print("RECIEVED: Connection Packet | client data port number = ", clientDataPortNumber)
-    packet.sendConnectAcknowledgmentPacket(clientDataSock, 1, dataPortNumber)
-    pass
-
+  
 def deleteFile(fileName):
     if os.path.isfile(fileName):
         print ("ACTION: Deleting ", fileName)
         os.remove(fileName)
+
+
+# SETUP ================================================================
 
 def validateCommandLineArgs():
     # Check number of command line args
@@ -373,7 +385,10 @@ def serverSetup():
 
 
     openControlSock()
-    
+
+
+# CORE ================================================================
+
 def coreLoop():
     global runningProcedure
     global procedureStep

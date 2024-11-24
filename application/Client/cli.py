@@ -18,16 +18,15 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 import application.PacketLib.packet as packet
 
+
+# CHANNEL Control
+
 def get_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     ip = s.getsockname()[0]
     s.close()
     return ip
-
-
-
-# All the ftp commands availble once the connection is set
 
 def connectToServer():
     print("ACTION: Connecting to the server control channel")
@@ -213,7 +212,9 @@ def connectToServer_On_DataChannel():
     # runningProcedure = "SetUp"
     packet.sendConnectPacket(dataSock, 1, dataPortNumber)
 
-# Downloads a file
+
+# FTP COMMANDS ===================================================
+
 def getFTPCommand(inputArgs):
     if len(inputArgs) < 2:
         print("ERROR: A file name is needed")
@@ -228,7 +229,6 @@ def getFTPCommand(inputArgs):
     runningProcedure = "Get"
     packet.sendGetPacket(controlSock, 1, recievingFileName)
 
-# Uploads a file
 def putFTPCommand(inputArgs):
     global transferFileData
 
@@ -254,7 +254,6 @@ def putFTPCommand(inputArgs):
     runningProcedure = "Put"
     packet.sendPutPacket(controlSock, 1, fileName)
 
-# Deletes a file
 def deleteFTPCommand(inputArgs):
     if len(inputArgs) < 2:
         print("ERROR: A file name is needed")
@@ -266,7 +265,6 @@ def deleteFTPCommand(inputArgs):
     runningProcedure = "Delete"
     packet.sendDeletePacket(controlSock, 1, fileName)
 
-# Lists out all valid commands
 def helpFTPCommand(inputArgs):
     print("\nValid commands:")
     print("get <FILENAME>")
@@ -278,7 +276,6 @@ def helpFTPCommand(inputArgs):
     print("exit\n")
     print("\n====================================\n")
 
-# Lists out all files on FTP server
 def lsFTPCommand(inputArgs):
     # print("Listing file names")
     expectPacket("000Ack")
@@ -286,19 +283,16 @@ def lsFTPCommand(inputArgs):
     runningProcedure = "List"
     packet.sendListRequestPacket(controlSock, 1)
 
-# Quits execution
 def quitFTPCommand(inputArgs):
     packet.sendDisconnectPacket(controlSock, 1)
     print("ACTION: Shutting Down")
     print("Goodbye!")
     quit()
 
-# Runs if the command is not recognized
 def errorFTPCommand(inputArgs):
     print("ERROR: Invalid command")
     print("    Use the help command to see all valid commands")
 
-# Dictionary of all ftp commands
 ftpCommands = {
     "get" : getFTPCommand,
     "put" : putFTPCommand,
@@ -310,11 +304,7 @@ ftpCommands = {
 }
 
 
-def closeDataChannel(recieved: packet.Packet):
-    # print("RECIEVED: Acknowledgment packet")
-    
-    global dataSock
-    dataSock.close()
+# RESPONSES ===================================================
 
 def response_to_generic(recieved: packet.Packet):
     print("RECIEVED: Generic packet = ", recieved.command)
@@ -428,10 +418,12 @@ def notExpectingPacket():
 
     isExpectingPacket = False
 
+
+# SEND PACKETS / ACTIONS =======================================================
+
 def fileDoesntExistOnServer(recieved: packet.Packet):
     print("RECIEVED: Invalid packet")
     print("ERROR: That file does not exist on the server")
-
 
 def sendFMan(recived: packet.Packet):
     print("RECIEVED: Connection Acknowledgment packet")
@@ -453,6 +445,11 @@ def sendAck_on_dataChannel(recieved: packet.Packet):
     print("RECIEVED: " + recieved.fullNameCommand() + " packet")
     packet.sendAcknowledgePacket(dataSock, 1, 1)
 
+def closeDataChannel(recieved: packet.Packet):
+    # print("RECIEVED: Acknowledgment packet")
+    
+    global dataSock
+    dataSock.close()
 
 def buildControlSock():
     # Creates a control socket
@@ -460,6 +457,9 @@ def buildControlSock():
 
     # Connect to the server
     controlSock.connect((serverMachineAddress, serverControlPortNumber))
+
+
+# SETUP ======================================================================
 
 def validateCommandLineArgs():
     # Check if the help command was input
@@ -480,7 +480,6 @@ def validateCommandLineArgs():
     if len(sys.argv) != 3:
         print ("Inteded usage: " + sys.argv[0] + " <server machine> <server port>")
         quit()
-
 
 def clientSetup():
     validateCommandLineArgs()
@@ -610,6 +609,9 @@ def clientSetup():
     ]
 
     connectToServer()
+
+
+# CORE ==========================================================================
 
 def coreLoop():
     global runningProcedure
