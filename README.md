@@ -38,4 +38,5 @@ Second follow the instrucitons below to setup the `client`.
 
 ## More Info
 You can read the `Application Layer Protocol.pdf` to view a full breakdown of the protocol we built
+You can read the `CPSC471-IEEE Project Report.pdf` to view more info on how we built this
 The github repository for this project can be found here: https://github.com/Digx7/471-GroupProject-ftp_server 
