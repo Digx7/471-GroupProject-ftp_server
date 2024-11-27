@@ -6,7 +6,7 @@ Last Edited 11/24/2024
 ## Group Members
 - Everette Webber edwebber@csu.fullerton.edu
 - Michael Martinez michael.mar413@csu.fullerton.edu
-- Gregory Dorfman ???@csu.fullerton.edu
+- Gregory Dorfman gadorfman@csu.fullerton.edu
 - Sepehr Nourbakhsh sephrnour@csu.fullerton.edu
 - Matt Sanchez mattsanchez31993@csu.fullerton.edu
 
